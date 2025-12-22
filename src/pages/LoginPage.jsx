@@ -47,12 +47,12 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
       className="min-h-screen flex relative bg-cover bg-center"
       style={{ backgroundImage: `url(${bgImage})` }}
     >
-      <div className="absolute inset-0 bg-black/50"></div>
+      <div className="absolute inset-0 bg-black/25"></div>
 
       {/*LEFT SECTION*/}
       <aside className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-between relative z-10">
         <div className="mb-8 flex items-center gap-3">
-          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/20">
+          <div className="bg-blue-600/30 backdrop-blur-sm p-3 rounded-xl border border-white/20">
             <Wrench className="w-8 h-8 text-white" />
           </div>
           <div>
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
         <div className="mt-6 space-y-4">
           {features.map((feature, idx) => (
             <div key={idx} className="flex items-start gap-3 text-white">
-              <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+              <div className="bg-blue-600/20 p-2 rounded-lg backdrop-blur-sm">
                 {feature.icon}
               </div>
               <div>
@@ -85,7 +85,6 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
           ))}
         </div>
 
-        {/* Footer */}
         <div className="mt-8 text-blue-200 text-sm">
           Trusted by over 500+ auto repair shops worldwide
         </div>
@@ -97,21 +96,23 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
           initial={{ opacity: 0, y: 40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl p-8"
+          className="relative z-10 w-full max-w-md bg-blue-500/20 backdrop-blur-lg rounded-2xl shadow-2xl p-8"
         >
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="bg-blue-600 p-2 rounded-lg">
+            <div className="bg-blue-600/30 p-2 rounded-lg backdrop-blur-sm">
               <Wrench className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-slate-900 text-xl">GarageFlow</h1>
-              <p className="text-slate-500 text-sm">Inventory Management</p>
+              <h1 className="text-white text-xl">GarageFlow</h1>
+              <p className="text-blue-100 text-sm">Inventory Management</p>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl text-slate-900 mb-2">Welcome back</h2>
-            <p className="text-slate-500">
+            <h2 className="text-white text-3xl font-semibold mb-2">
+              Welcome back
+            </h2>
+            <p className="text-blue-100 text-sm">
               Please enter your credentials to sign in
             </p>
           </div>
@@ -119,30 +120,30 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label>Email Address</Label>
+              <Label className="text-white/90">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
                 <Input
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-11 h-12"
+                  className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300 focus:border-blue-300"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Password</Label>
+              <Label className="text-white/90">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
                 <Input
                   type="password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-11 h-12"
+                  className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300 focus:border-blue-300"
                   required
                 />
               </div>
@@ -154,36 +155,38 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
                   checked={rememberMe}
                   onCheckedChange={setRememberMe}
                 />
-                <Label className="text-sm text-slate-600">Remember me</Label>
+                <Label className="text-blue-500 text-sm">Remember me</Label>
               </div>
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-blue-100 text-sm hover:text-white hover:underline"
               >
                 Forgot password?
               </button>
             </div>
 
+            {/* Login button */}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2"
+              className="w-full h-12 bg-blue-600/80 text-white hover:bg-blue-700/90 rounded-lg flex items-center justify-center gap-2"
             >
-              Sign In <ArrowRight className="w-5 h-5" />
+              Sign In <ArrowRight className="w-5 h-5 text-white" />
             </motion.button>
           </form>
 
-          <div className="my-8 text-center text-sm text-slate-500">
+          {/* Divider */}
+          <div className="my-8 text-center text-blue-100 text-sm">
             Don’t have an account?
           </div>
 
-          {/* Register */}
+          {/* Register button */}
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={onSwitchToRegister}
-            className="w-full h-12 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
+            className="w-full h-12 border border-blue-400/60 text-blue-100 hover:bg-blue-500/20 rounded-lg"
           >
             Create New Account
           </motion.button>

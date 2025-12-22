@@ -12,7 +12,6 @@ import {
   TrendingDown,
   DollarSign,
   ShoppingCart,
-  AlertTriangle,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -74,94 +73,99 @@ export function DashboardPage() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
+      {/* Sidebar with vertical divider */}
       <Sidebar
         currentPage={currentPage}
         onNavigate={(page) => setCurrentPage(page)}
         onLogout={() => alert("Logged out")}
+        className="bg-blue-900 border-r border-white/30"
       />
 
-      {/* Dashboard content */}
-      <main className="flex-1 p-6 bg-slate-100 space-y-6 overflow-y-auto">
+      {/* Main dashboard content */}
+      <main className="flex-1 bg-slate-800 text-white p-6 space-y-6 overflow-y-auto">
         {/* Header */}
         <div>
           <h2 className="text-3xl mb-1">Dashboard</h2>
-          <p className="text-slate-500">Overview of your garage inventory</p>
+          <p className="text-blue-200">Overview of your garage inventory</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ">
-          <Card className="bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm">Total Items</CardTitle>
-              <Package className="w-4 h-4 text-slate-500" />
+              <CardTitle className="text-white text-sm">Total Items</CardTitle>
+              <Package className="w-4 h-4 text-white/70" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl">1,247</div>
-              <p className="text-xs text-slate-500 mt-1">
-                <span className="text-green-600 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> +12% from last month
-                </span>
+              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 text-green-400" /> +12% from last
+                month
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm">Low Stock Items</CardTitle>
-              <TrendingDown className="w-4 h-4 text-orange-500" />
+              <CardTitle className="text-white text-sm">
+                Low Stock Items
+              </CardTitle>
+              <TrendingDown className="w-4 h-4 text-orange-400" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl">23</div>
-              <p className="text-xs text-slate-500 mt-1">
-                <span className="text-orange-600">Requires attention</span>
-              </p>
+              <p className="text-blue-100 text-xs mt-1">Requires attention</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm">Monthly Sales</CardTitle>
-              <DollarSign className="w-4 h-4 text-slate-500" />
+              <CardTitle className="text-white text-sm">
+                Monthly Sales
+              </CardTitle>
+              <DollarSign className="w-4 h-4 text-white/70" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl">$6,800</div>
-              <p className="text-xs text-slate-500 mt-1">
-                <span className="text-green-600 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> +8% from last month
-                </span>
+              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 text-green-400" /> +8% from last
+                month
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm">Pending Orders</CardTitle>
-              <ShoppingCart className="w-4 h-4 text-slate-500" />
+              <CardTitle className="text-white text-sm">
+                Pending Orders
+              </CardTitle>
+              <ShoppingCart className="w-4 h-4 text-white/70" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl">7</div>
-              <p className="text-xs text-slate-500 mt-1">
-                <span className="text-slate-600">3 arriving this week</span>
-              </p>
+              <p className="text-blue-100 text-xs mt-1">3 arriving this week</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-white">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader>
-              <CardTitle>Sales Trend</CardTitle>
-              <CardDescription>Monthly sales performance</CardDescription>
+              <CardTitle className="text-white">Sales Trend</CardTitle>
+              <CardDescription className="text-blue-100">
+                Monthly sales performance
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
+                  <XAxis dataKey="month" stroke="#cbd5e1" />
+                  <YAxis stroke="#cbd5e1" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="sales"
@@ -173,10 +177,14 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
+          <Card className="bg-blue-500/20 backdrop-blur-lg">
             <CardHeader>
-              <CardTitle>Inventory by Category</CardTitle>
-              <CardDescription>Distribution of spare parts</CardDescription>
+              <CardTitle className="text-white">
+                Inventory by Category
+              </CardTitle>
+              <CardDescription className="text-blue-100">
+                Distribution of spare parts
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -195,7 +203,9 @@ export function DashboardPage() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -203,25 +213,23 @@ export function DashboardPage() {
         </div>
 
         {/* Stock Levels */}
-        <Card className="bg-white">
+        <Card className="bg-blue-500/20 backdrop-blur-lg">
           <CardHeader>
-            <CardTitle>Stock Levels by Category</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">
+              Stock Levels by Category
+            </CardTitle>
+            <CardDescription className="text-blue-100">
               Overview of inventory status across categories
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={stockLevelData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="category" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
+                <XAxis dataKey="category" stroke="#cbd5e1" />
+                <YAxis stroke="#cbd5e1" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                  }}
+                  contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
                 />
                 <Bar
                   dataKey="inStock"
@@ -243,59 +251,46 @@ export function DashboardPage() {
                 />
               </BarChart>
             </ResponsiveContainer>
-
-            <div className="flex items-center justify-center gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-sm text-slate-600">In Stock</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className="text-sm text-slate-600">Low Stock</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-sm text-slate-600">Out of Stock</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
         {/* Low Stock Alerts */}
-        <Card className="bg-white">
+        <Card className="bg-blue-600/20 backdrop-blur-lg">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
-              <CardTitle>Low Stock Alerts</CardTitle>
+              <TrendingDown className="w-5 h-5 text-orange-400" />
+              <CardTitle className="text-white">Low Stock Alerts</CardTitle>
             </div>
-            <CardDescription>Items that need restocking</CardDescription>
+            <CardDescription className="text-blue-100">
+              Items that need restocking
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {lowStockItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-slate-500">{item.category}</p>
+                    <p className="font-medium text-white">{item.name}</p>
+                    <p className="text-sm text-blue-100">{item.category}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-sm">
+                      <p className="text-sm text-blue-100">
                         Current:{" "}
-                        <span className="font-medium text-orange-600">
+                        <span className="font-medium text-orange-400">
                           {item.stock}
                         </span>
                       </p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-blue-100">
                         Min: {item.minStock}
                       </p>
                     </div>
-                    <div className="w-24 bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="w-24 bg-blue-500/20 h-2 rounded-full overflow-hidden">
                       <div
-                        className="bg-orange-500 h-full rounded-full"
+                        className="bg-orange-400 h-full rounded-full"
                         style={{
                           width: `${(item.stock / item.minStock) * 100}%`,
                         }}
