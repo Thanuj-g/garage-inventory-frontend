@@ -63,7 +63,7 @@ export function Sidebar({ currentPage, onNavigate, onLogout }) {
         })}
       </nav>
 
-      {/* Footer */}
+      
       <div className="p-4 border-t border-slate-700 space-y-1">
         <button
           onClick={() => onNavigate("settings")}
