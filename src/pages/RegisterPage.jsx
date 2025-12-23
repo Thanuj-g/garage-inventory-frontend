@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Lottie from "lottie-react";
+import { motion } from "framer-motion";
 import signupAnimation from "../assests/progerss.json";
-import { Button } from "../components/button";
 import { Input } from "../components/input";
 import { Label } from "../components/lable";
 import {
@@ -28,130 +28,146 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
-      {/* Left Section - Lottie animation */}
+    <div className="h-screen overflow-hidden flex items-center justify-center bg-slate-900 px-4">
+      {/* Left Section*/}
       <div className="flex-1 flex items-center justify-center">
         <div className="w-100 h-4/5 opacity-60">
           <Lottie animationData={signupAnimation} loop />
         </div>
       </div>
 
-      {/* Right Section - Registration card */}
+      {/* Right Section */}
       <div className="flex-1 flex items-center justify-center">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl p-2">
-          <CardHeader className="text-center space-y-2 pb-4">
-            <CardTitle className="text-2xl font-bold text-white">
-              Create Account
-            </CardTitle>
-            <CardDescription className="text-slate-300 text-sm">
-              Register your garage to manage inventory
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <Label className="text-slate-300">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="pl-12 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Garage Name</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    value={formData.garageName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, garageName: e.target.value })
-                    }
-                    className="pl-12 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    placeholder="Auto Works Garage"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="pl-12 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    placeholder="admin@garage.com"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    className="pl-12 bg-white/10 border-white/20 text-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-slate-300">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                  <Input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="pl-12 bg-white/10 border-white/20 text-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg"
-              >
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-md"
+        >
+          <Card className="bg-blue-500/20 backdrop-blur-lg rounded-2xl shadow-2xl p-4 border-none">
+            <CardHeader className="text-center space-y-2 pb-2">
+              <CardTitle className="text-lg font-semibold text-white">
                 Create Account
-              </Button>
-            </form>
+              </CardTitle>
+              <CardDescription className="text-blue-100 text-sm">
+                Register your garage to manage inventory
+              </CardDescription>
+            </CardHeader>
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={onSwitchToLogin}
-                className="text-sm text-blue-400 hover:underline"
-              >
-                Already have an account? Sign in
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+            <CardContent className="p-0">
+              <form onSubmit={handleSubmit} className="space-y-2">
+                {/* Full Name */}
+                <div className="space-y-1">
+                  <Label className="text-white/90">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                    <Input
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="John Doe"
+                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Garage Name */}
+                <div className="space-y-1">
+                  <Label className="text-white/90">Garage Name</Label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                    <Input
+                      value={formData.garageName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, garageName: e.target.value })
+                      }
+                      placeholder="Auto Works Garage"
+                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <Label className="text-white/90">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      placeholder="admin@garage.com"
+                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1">
+                  <Label className="text-white/90">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                    <Input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      className="pl-11 h-12 bg-blue-400/20 text-white border-none focus:ring-blue-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-1">
+                  <Label className="text-white/90">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                    <Input
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
+                      className="pl-11 h-12 bg-blue-400/20 text-white border-none focus:ring-blue-300"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Button */}
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  type="submit"
+                  className="w-full h-12 bg-blue-600/80 hover:bg-blue-700/90 text-white rounded-lg flex items-center justify-center gap-2"
+                >
+                  Create Account
+                </motion.button>
+              </form>
+
+              <div className="mt-4 text-center text-blue-100 text-sm">
+                Already have an account?{" "}
+                <button
+                  onClick={onSwitchToLogin}
+                  className="text-blue-300 hover:underline"
+                >
+                  Sign in
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
