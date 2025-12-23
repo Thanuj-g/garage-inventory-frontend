@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Lottie from "lottie-react";
+import signupAnimation from "../assests/progerss.json";
 import { Button } from "../components/button";
 import { Input } from "../components/input";
 import { Label } from "../components/lable";
@@ -9,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/card";
-import { Wrench, Lock, Mail, User, Building } from "lucide-react";
+import { User, Building, Mail, Lock } from "lucide-react";
 
 export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
@@ -26,140 +28,131 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 backdrop-blur-sm bg-white/95">
-        <CardHeader className="space-y-1 text-center pb-8">
-          <div className="flex justify-center mb-6">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-4 rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-200">
-              <Wrench className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Create Account
-          </CardTitle>
-          <CardDescription className="text-base text-slate-600">
-            Register your garage to start managing inventory
-          </CardDescription>
-        </CardHeader>
+    <div className="flex items-center justify-center min-h-screen px-4 bg-slate-900">
+      {/* Left Section - Lottie animation */}
+      <div className="flex items-center justify-center flex-1">
+        <div className="w-100 h-4/5 opacity-60">
+          <Lottie animationData={signupAnimation} loop />
+        </div>
+      </div>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Garage Name */}
-            <div className="space-y-2">
-              <Label htmlFor="garageName">Garage Name</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  id="garageName"
-                  placeholder="Auto Works Garage"
-                  value={formData.garageName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, garageName: e.target.value })
-                  }
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@garage.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-            >
+      {/* Right Section - Registration card */}
+      <div className="flex items-center justify-center flex-1">
+        <Card className="w-full max-w-md p-2 border shadow-2xl bg-white/10 backdrop-blur-xl border-white/20 rounded-2xl">
+          <CardHeader className="pb-4 space-y-2 text-center">
+            <CardTitle className="text-2xl font-bold text-white">
               Create Account
-            </Button>
-          </form>
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-300">
+              Register your garage to manage inventory
+            </CardDescription>
+          </CardHeader>
 
-          {/* Switch to Login */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={onSwitchToLogin}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Already have an account? Sign in
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <Label className="text-slate-300">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute w-5 h-5 left-3 top-3 text-slate-400" />
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="pl-12 text-white bg-white/10 border-white/20 placeholder:text-slate-400"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Garage Name</Label>
+                <div className="relative">
+                  <Building className="absolute w-5 h-5 left-3 top-3 text-slate-400" />
+                  <Input
+                    value={formData.garageName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, garageName: e.target.value })
+                    }
+                    className="pl-12 text-white bg-white/10 border-white/20 placeholder:text-slate-400"
+                    placeholder="Auto Works Garage"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute w-5 h-5 left-3 top-3 text-slate-400" />
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    className="pl-12 text-white bg-white/10 border-white/20 placeholder:text-slate-400"
+                    placeholder="admin@garage.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute w-5 h-5 left-3 top-3 text-slate-400" />
+                  <Input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    className="pl-12 text-white bg-white/10 border-white/20"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-300">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute w-5 h-5 left-3 top-3 text-slate-400" />
+                  <Input
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    className="pl-12 text-white bg-white/10 border-white/20"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full font-semibold text-white shadow-lg h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                Create Account
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={onSwitchToLogin}
+                className="text-sm text-blue-400 hover:underline"
+              >
+                Already have an account? Sign in
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
