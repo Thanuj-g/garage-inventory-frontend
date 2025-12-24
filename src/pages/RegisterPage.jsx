@@ -1,17 +1,11 @@
 import { useState } from "react";
 import Lottie from "lottie-react";
 import { motion } from "framer-motion";
-import signupAnimation from "../assests/progerss.json";
+import bgImage from "../assests/login.png";
+import signupAnimation from "../assests/Isometric data analysis.json";
 import { Input } from "../components/input";
 import { Label } from "../components/lable";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../components/card";
-import { User, Building, Mail, Lock } from "lucide-react";
+import { User, Building, Mail, Lock, ArrowRight, Wrench } from "lucide-react";
 
 export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
@@ -28,147 +22,175 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   };
 
   return (
-    <div className="h-screen overflow-hidden flex items-center justify-center bg-slate-900 px-4">
-      {/* Left Section*/}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-100 h-4/5 opacity-60">
-          <Lottie animationData={signupAnimation} loop />
-        </div>
-      </div>
+    <div
+      className="min-h-screen flex relative bg-cover bg-center"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
 
-      {/* Right Section */}
-      <div className="flex-1 flex items-center justify-center">
+      <aside className="hidden lg:flex lg:w-1/2 items-center justify-center p-8">
+        <div className="w-190 max-w-xl">
+          <Lottie animationData={signupAnimation} loop autoplay />
+        </div>
+      </aside>
+
+      {/* Right: Form */}
+      <main className="flex-1 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="w-full max-w-md"
         >
-          <Card className="bg-blue-500/20 backdrop-blur-lg rounded-2xl shadow-2xl p-4 border-none">
-            <CardHeader className="text-center space-y-2 pb-2">
-              <CardTitle className="text-lg font-semibold text-white">
-                Create Account
-              </CardTitle>
-              <CardDescription className="text-blue-100 text-sm">
-                Register your garage to manage inventory
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="p-0">
-              <form onSubmit={handleSubmit} className="space-y-2">
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <Label className="text-white/90">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
-                    <Input
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="John Doe"
-                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Garage Name */}
-                <div className="space-y-1">
-                  <Label className="text-white/90">Garage Name</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
-                    <Input
-                      value={formData.garageName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, garageName: e.target.value })
-                      }
-                      placeholder="Auto Works Garage"
-                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <Label className="text-white/90">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="admin@garage.com"
-                      className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1">
-                  <Label className="text-white/90">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
-                    <Input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                      className="pl-11 h-12 bg-blue-400/20 text-white border-none focus:ring-blue-300"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-1">
-                  <Label className="text-white/90">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
-                    <Input
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      className="pl-11 h-12 bg-blue-400/20 text-white border-none focus:ring-blue-300"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Button */}
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  type="submit"
-                  className="w-full h-12 bg-blue-600/80 hover:bg-blue-700/90 text-white rounded-lg flex items-center justify-center gap-2"
-                >
-                  Create Account
-                </motion.button>
-              </form>
-
-              <div className="mt-4 text-center text-blue-100 text-sm">
-                Already have an account?{" "}
-                <button
-                  onClick={onSwitchToLogin}
-                  className="text-blue-300 hover:underline"
-                >
-                  Sign in
-                </button>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-5 sm:p-8">
+            {/* Mobile Logo */}
+            <div className="lg:hidden flex items-center gap-3 mb-5">
+              <div className="bg-blue-600/40 backdrop-blur-sm p-2.5 rounded-lg border border-white/30">
+                <Wrench className="w-7 h-7 text-white" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <h1 className="text-white text-xl font-semibold">GarageFlow</h1>
+                <p className="text-blue-100 text-xs">Inventory Management</p>
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="text-center mb-5">
+              <h2 className="text-white text-2xl sm:text-3xl font-semibold">
+                Create Account
+              </h2>
+              <p className="text-blue-100 text-xs sm:text-sm mt-1">
+                Register your garage and start managing inventory
+              </p>
+            </div>
+
+            {/* Form - NO internal scrolling */}
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+              {/* Full Name */}
+              <div>
+                <Label className="text-white/90 text-sm font-medium">
+                  Full Name
+                </Label>
+                <div className="relative mt-1">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="Enter your name"
+                    className="pl-10 h-10 sm:h-11 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Garage Name */}
+              <div>
+                <Label className="text-white/90 text-sm font-medium">
+                  Garage Name
+                </Label>
+                <div className="relative mt-1">
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                  <Input
+                    value={formData.garageName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, garageName: e.target.value })
+                    }
+                    placeholder="Garage name"
+                    className="pl-10 h-10 sm:h-11 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div>
+                <Label className="text-white/90 text-sm font-medium">
+                  Email Address
+                </Label>
+                <div className="relative mt-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    placeholder="Enter your Email"
+                    className="pl-10 h-10 sm:h-11 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <Label className="text-white/90 text-sm font-medium">
+                  Password
+                </Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                  <Input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    placeholder="••••••••"
+                    className="pl-10 h-10 sm:h-11 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <Label className="text-white/90 text-sm font-medium">
+                  Confirm Password
+                </Label>
+                <div className="relative mt-1">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-4 h-4" />
+                  <Input
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    placeholder="••••••••"
+                    className="pl-10 h-10 sm:h-11 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                type="submit"
+                className="w-full h-11 sm:h-12 bg-blue-600/80 text-white hover:bg-blue-600 rounded-lg flex items-center justify-center gap-2 font-medium shadow-md backdrop-blur-sm"
+              >
+                Create Account <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </motion.button>
+            </form>
+
+            {/* Sign In Link */}
+            <div className="mt-5 text-center text-blue-100 text-xs sm:text-sm">
+              Already have an account?{" "}
+              <button
+                onClick={onSwitchToLogin}
+                className="text-blue-200 hover:text-white font-medium hover:underline transition"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

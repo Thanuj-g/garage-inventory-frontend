@@ -49,7 +49,7 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
     >
       <div className="absolute inset-0 bg-black/25"></div>
 
-      {/*LEFT SECTION*/}
+      {/* LEFT SECTION - Remains dark/promotional */}
       <aside className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-between relative z-10">
         <div className="mb-8 flex items-center gap-3">
           <div className="bg-blue-600/30 backdrop-blur-sm p-3 rounded-xl border border-white/20">
@@ -60,7 +60,6 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
             <p className="text-blue-200 text-sm">Inventory Management</p>
           </div>
         </div>
-
         <div className="space-y-4">
           <h2 className="text-white text-4xl font-semibold leading-snug">
             Streamline Your <br /> Garage Operations
@@ -70,7 +69,6 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
             garages.
           </p>
         </div>
-
         <div className="mt-6 space-y-4">
           {features.map((feature, idx) => (
             <div key={idx} className="flex items-start gap-3 text-white">
@@ -84,26 +82,26 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
             </div>
           ))}
         </div>
-
         <div className="mt-8 text-blue-200 text-sm">
           Trusted by over 500+ auto repair shops worldwide
         </div>
       </aside>
 
-      {/*RIGHT SECTION*/}
+      {/* RIGHT SECTION - Transparent glassmorphism theme */}
       <main className="flex-1 flex items-center justify-center p-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative z-10 w-full max-w-md bg-blue-500/20 backdrop-blur-lg rounded-2xl shadow-2xl p-8"
+          className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20"
         >
+          {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="bg-blue-600/30 p-2 rounded-lg backdrop-blur-sm">
+            <div className="bg-blue-600/40 backdrop-blur-sm p-2 rounded-lg border border-white/30">
               <Wrench className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-white text-xl">GarageFlow</h1>
+              <h1 className="text-white text-xl font-semibold">GarageFlow</h1>
               <p className="text-blue-100 text-sm">Inventory Management</p>
             </div>
           </div>
@@ -120,30 +118,30 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-white/90">Email Address</Label>
+              <Label className="text-white/90 font-medium">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-5 h-5" />
                 <Input
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300 focus:border-blue-300"
+                  className="pl-11 h-12 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/90">Password</Label>
+              <Label className="text-white/90 font-medium">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 w-5 h-5" />
                 <Input
                   type="password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-11 h-12 bg-blue-400/20 text-white placeholder-blue-100 border-none focus:ring-blue-300 focus:border-blue-300"
+                  className="pl-11 h-12 bg-white/10 text-white placeholder-blue-200 border border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
                   required
                 />
               </div>
@@ -155,11 +153,11 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
                   checked={rememberMe}
                   onCheckedChange={setRememberMe}
                 />
-                <Label className="text-blue-500 text-sm">Remember me</Label>
+                <Label className="text-white/90 text-sm">Remember me</Label>
               </div>
               <button
                 type="button"
-                className="text-blue-100 text-sm hover:text-white hover:underline"
+                className="text-blue-200 text-sm hover:text-white hover:underline"
               >
                 Forgot password?
               </button>
@@ -170,9 +168,9 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="w-full h-12 bg-blue-600/80 text-white hover:bg-blue-700/90 rounded-lg flex items-center justify-center gap-2"
+              className="w-full h-12 bg-blue-600/80 text-white hover:bg-blue-600 rounded-lg flex items-center justify-center gap-2 font-medium shadow-md backdrop-blur-sm"
             >
-              Sign In <ArrowRight className="w-5 h-5 text-white" />
+              Sign In <ArrowRight className="w-5 h-5" />
             </motion.button>
           </form>
 
@@ -186,7 +184,7 @@ export function LoginPage({ onLogin, onSwitchToRegister }) {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={onSwitchToRegister}
-            className="w-full h-12 border border-blue-400/60 text-blue-100 hover:bg-blue-500/20 rounded-lg"
+            className="w-full h-12 border border-white/40 text-white hover:bg-white/10 rounded-lg font-medium transition backdrop-blur-sm"
           >
             Create New Account
           </motion.button>
