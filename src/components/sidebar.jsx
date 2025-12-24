@@ -1,40 +1,44 @@
+import React from "react";
 import {
-  LayoutDashboard,
-  Package,
-  TrendingDown,
-  FolderTree,
-  Users,
-  ShoppingCart,
-  FileText,
-  LogOut,
-  Settings,
-  Wrench,
-} from "lucide-react";
-
-import { cn } from "../components/util";
+  MdDashboard,
+  MdInventory,
+  MdTrendingDown,
+  MdFolder,
+  MdPeople,
+  MdShoppingCart,
+  MdArticle,
+  MdLogout,
+  MdSettings,
+  MdBuild,
+} from "react-icons/md";
+import { NavLink } from "react-router-dom";
+import { cn } from "./util";
 
 export function Sidebar({ currentPage, onNavigate, onLogout }) {
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "inventory", label: "Inventory", icon: Package },
-    { id: "stock-tracking", label: "Stock Tracking", icon: TrendingDown },
-    { id: "categories", label: "Categories", icon: FolderTree },
-    { id: "suppliers", label: "Suppliers", icon: Users },
-    { id: "sales", label: "Sales & Usage", icon: ShoppingCart },
-    { id: "purchase-orders", label: "Purchase Orders", icon: FileText },
+    { id: "dashboard", label: "Dashboard", icon: MdDashboard, to: "/dashboard" },
+    { id: "inventory", label: "Inventory", icon: MdInventory, to: "/inventory" },
+    { id: "stock-tracking", label: "Stock Tracking", icon: MdTrendingDown, to: "/stock-tracking" },
+    { id: "categories", label: "Categories", icon: MdFolder, to: "/categories" },
+    { id: "suppliers", label: "Suppliers", icon: MdPeople, to: "/suppliers" },
+    { id: "sales", label: "Sales & Usage", icon: MdShoppingCart, to: "/sales" },
+    { id: "purchase-orders", label: "Purchase Orders", icon: MdArticle, to: "/purchase-orders" },
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen sticky top-0">
+    <aside className="sticky top-0 flex flex-col w-64 h-screen text-white bg-slate-900">
       {/* Header */}
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Wrench className="w-6 h-6" />
+          <div className="p-2 bg-blue-600 rounded-lg">
+            <MdBuild className="w-6 h-6" />
           </div>
           <div>
             <h1 className="font-semibold">Garage Inventory</h1>
             <p className="text-xs text-slate-400">Management System</p>
+            <p className="mt-1 text-xs break-all text-slate-300">
+              {window?.location?.href}
+            </p>
           </div>
         </div>
       </div>
@@ -43,46 +47,48 @@ export function Sidebar({ currentPage, onNavigate, onLogout }) {
       <nav className="flex-1 p-4 space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPage === item.id;
 
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                isActive
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
-              )}
+              to={item.to}
+              onClick={() => onNavigate && onNavigate(item.id)}
+              className={({ isActive }) =>
+                cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                )
+              }
             >
               <Icon className="w-5 h-5" />
               <span>{item.label}</span>
-            </button>
+            </NavLink>
           );
         })}
       </nav>
 
-      
-      <div className="p-4 border-t border-slate-700 space-y-1">
-        <button
-          onClick={() => onNavigate("settings")}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-            currentPage === "settings"
-              ? "bg-blue-600 text-white"
-              : "text-slate-300 hover:bg-slate-800 hover:text-white"
-          )}
+      <div className="p-4 space-y-1 border-t border-slate-700">
+        <NavLink
+          to="/settings"
+          onClick={() => onNavigate && onNavigate("settings")}
+          className={({ isActive }) =>
+            cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+              isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            )
+          }
         >
-          <Settings className="w-5 h-5" />
+          <MdSettings className="w-5 h-5" />
           <span>Settings</span>
-        </button>
+        </NavLink>
 
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+          className="flex items-center w-full gap-3 px-4 py-3 transition-colors rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white"
         >
-          <LogOut className="w-5 h-5" />
+          <MdLogout className="w-5 h-5" />
           <span>Logout</span>
         </button>
       </div>
