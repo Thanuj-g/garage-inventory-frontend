@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "../components/sidebar";
 import {
   Card,
@@ -69,6 +70,7 @@ const lowStockItems = [
 ];
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   return (
@@ -76,8 +78,11 @@ export function DashboardPage() {
       {/* Sidebar with vertical divider */}
       <Sidebar
         currentPage={currentPage}
-        onNavigate={(page) => setCurrentPage(page)}
-        onLogout={() => alert("Logged out")}
+        onNavigate={(page) => {
+          setCurrentPage(page);
+          navigate(`/${page}`);
+        }}
+        onLogout={() => navigate("/")}
         className="bg-blue-900 border-r border-white/30"
       />
 

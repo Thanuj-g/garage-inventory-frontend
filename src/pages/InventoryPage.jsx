@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import Header from "../components/Header";
 import SearchFilter from "../components/SearchFilter";
 import ActionButtons from "../components/ActionButtons";
+import AddItemModal from "../components/AddItemModal";
 
 const initialData = [
   { part: "ENG-001", name: "Engine Oil 5W-30", category: "Oils & Fluids", qty: 45, min: 20, price: "$25.99", location: "Shelf A1" },
@@ -21,20 +22,90 @@ export default function InventoryPage() {
   const [currentPage, setCurrentPage] = useState("inventory");
   const [data, setData] = useState(initialData);
   const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const handleAdd = () => alert("Add item (implement form)");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null); // NEW
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set(
+      data.map((d) => (d.category || "").trim()).filter(Boolean)
+    );
+    return Array.from(set).sort();
+  }, [data]);
+
+  const handleAdd = () => {
+    setEditingItem(null);
+    setIsAddOpen(true);
+  };
+
   const handleSearch = (q) => setQuery(q || "");
 
-  const filtered = data.filter(
-    (d) =>
-      d.name.toLowerCase().includes(query.toLowerCase()) ||
-      d.part.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
 
-  const handleEdit = (item) => alert(`Edit ${item.part} (implement)`);
+    return data.filter((d) => {
+      const matchesQuery =
+        !q ||
+        d.name.toLowerCase().includes(q) ||
+        d.part.toLowerCase().includes(q);
+
+      const matchesCategory =
+        selectedCategory === "all" || d.category === selectedCategory;
+
+      return matchesQuery && matchesCategory;
+    });
+  }, [data, query, selectedCategory]);
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setIsAddOpen(true);
+  };
+
   const handleDelete = (item) => {
     if (!window.confirm(`Delete ${item.part}?`)) return;
     setData((prev) => prev.filter((p) => p.part !== item.part));
+  };
+
+  const handleSubmitModal = (payload) => {
+    // payload.originalPart is set when editing
+    if (editingItem) {
+      const originalPart = payload.originalPart || editingItem.part;
+
+      setData((prev) =>
+        prev.map((it) =>
+          it.part === originalPart
+            ? {
+                ...it,
+                part: payload.part,
+                name: payload.name,
+                category: payload.category,
+                qty: payload.qty,
+                min: payload.min,
+                price: payload.price,
+                location: payload.location,
+                supplier: payload.supplier,
+              }
+            : it
+        )
+      );
+      return;
+    }
+
+    // add
+    setData((prev) => [
+      {
+        part: payload.part,
+        name: payload.name,
+        category: payload.category,
+        qty: payload.qty,
+        min: payload.min,
+        price: payload.price,
+        location: payload.location,
+        supplier: payload.supplier,
+      },
+      ...prev,
+    ]);
   };
 
   return (
@@ -50,7 +121,13 @@ export default function InventoryPage() {
 
       <main className="flex-1 min-h-screen p-6 bg-gray-50">
         <Header onAdd={handleAdd} />
-        <SearchFilter onSearch={handleSearch} onFilter={() => alert("Filter")} />
+
+        <SearchFilter
+          onSearch={handleSearch}
+          categories={categoryOptions}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+        />
 
         <div className="overflow-x-auto bg-white shadow-sm rounded-xl">
           <table className="w-full border-collapse">
@@ -78,17 +155,34 @@ export default function InventoryPage() {
                   <td className="p-4">{item.min}</td>
                   <td className="p-4">{item.price}</td>
                   <td className="p-4">
-                    <span className="px-3 py-1 text-sm text-white bg-black rounded-full">In Stock</span>
+                    <span className="px-3 py-1 text-sm text-white bg-black rounded-full">
+                      In Stock
+                    </span>
                   </td>
                   <td className="p-4">{item.location}</td>
                   <td className="p-4">
-                    <ActionButtons onEdit={() => handleEdit(item)} onDelete={() => handleDelete(item)} />
+                    <ActionButtons
+                      onEdit={() => handleEdit(item)}
+                      onDelete={() => handleDelete(item)}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <AddItemModal
+          isOpen={isAddOpen}
+          onClose={() => {
+            setIsAddOpen(false);
+            setEditingItem(null);
+          }}
+          mode={editingItem ? "edit" : "add"}
+          initialValues={editingItem}
+          onSubmit={handleSubmitModal}
+          categoryOptions={categoryOptions}
+        />
       </main>
     </div>
   );
