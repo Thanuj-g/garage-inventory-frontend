@@ -15,6 +15,7 @@ import {
     TrendingUp,
     ChevronDown,
     Check,
+    X,
 } from "lucide-react";
 import {
     BarChart,
@@ -117,6 +118,7 @@ export default function SalesAndUsagePage() {
     const [currentPage, setCurrentPage] = useState("sales");
     const [filterType, setFilterType] = useState("All Transactions");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const filteredData = transactionData.filter((item) => {
         if (filterType === "Sales Only") return item.type === "Sale";
@@ -142,7 +144,10 @@ export default function SalesAndUsagePage() {
                         <h2 className="text-3xl mb-1 font-bold">Sales & Usage Tracking</h2>
                         <p className="text-blue-200">Monitor sales and internal usage</p>
                     </div>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    >
                         <Plus className="w-5 h-5" />
                         Record Transaction
                     </button>
@@ -294,6 +299,87 @@ export default function SalesAndUsagePage() {
                     </CardContent>
                 </Card>
             </main>
+
+            {/* Record Transaction Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Record New Transaction</h2>
+                                <p className="text-gray-500 text-sm mt-1">Add a sale or internal usage record</p>
+                            </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors bg-transparent hover:bg-gray-100 p-1 rounded-full"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Form Content */}
+                        <div className="p-6 space-y-4">
+                            {/* Transaction Type */}
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700">Transaction Type</label>
+                                <div className="relative">
+                                    <select className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 appearance-none">
+                                        <option>Sale to Customer</option>
+                                        <option>Internal Usage</option>
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Part Number */}
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">Part Number</label>
+                                    <input type="text" placeholder="e.g. ENG-001" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
+                                </div>
+                                {/* Item Name */}
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">Item Name</label>
+                                    <input type="text" placeholder="e.g. Engine Oil 5W-30" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Quantity */}
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                                    <input type="number" defaultValue="1" min="1" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
+                                </div>
+                                {/* Unit Price */}
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-700">Unit Price ($)</label>
+                                    <input type="number" placeholder="0.00" step="0.01" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
+                                </div>
+                            </div>
+
+                            {/* Customer / Purpose */}
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-700">Customer / Purpose</label>
+                                <input type="text" placeholder="e.g. John Doe - Honda Civic" className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                Record Transaction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
