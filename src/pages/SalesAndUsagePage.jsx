@@ -135,6 +135,14 @@ export default function SalesAndUsagePage() {
                 onLogout={() => navigate("/")}
             />
 
+            <main className="flex-1 bg-slate-800 text-white p-6 space-y-6 overflow-y-auto">
+                {/* Header */}
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-3xl mb-1 font-bold">Sales & Usage Tracking</h2>
+                        <p className="text-blue-200">Monitor sales and internal usage</p>
+                    </div>
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
             <main className="flex-1 p-6 space-y-6 overflow-y-auto text-white bg-slate-800">
                 {/* Header */}
                 <div className="flex items-start justify-between">
@@ -149,6 +157,16 @@ export default function SalesAndUsagePage() {
                 </div>
 
                 {/* Info Cards */}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-white text-sm font-medium">Total Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-3xl font-bold flex items-center gap-2">
+                                <span className="text-green-400 text-xl font-normal">$</span>787.92
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
                         <CardHeader className="pb-2">
@@ -157,16 +175,17 @@ export default function SalesAndUsagePage() {
                         <CardContent>
                             <div className="flex items-center gap-2 text-3xl font-bold">
                                 <span className="text-xl font-normal text-green-400">$</span>787.92
+p
                             </div>
                         </CardContent>
                     </Card>
 
                     <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-white">Today's Sales</CardTitle>
+                            <CardTitle className="text-white text-sm font-medium">Today's Sales</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center gap-2 text-3xl font-bold">
+                            <div className="text-3xl font-bold flex items-center gap-2">
                                 <ShoppingCart className="w-6 h-6 text-blue-400" /> 0
                             </div>
                         </CardContent>
@@ -174,10 +193,10 @@ export default function SalesAndUsagePage() {
 
                     <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-white">Items Sold</CardTitle>
+                            <CardTitle className="text-white text-sm font-medium">Items Sold</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center gap-2 text-3xl font-bold">
+                            <div className="text-3xl font-bold flex items-center gap-2">
                                 <Package className="w-6 h-6 text-purple-400" /> 14
                             </div>
                         </CardContent>
@@ -185,10 +204,10 @@ export default function SalesAndUsagePage() {
 
                     <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-white">Avg Transaction</CardTitle>
+                            <CardTitle className="text-white text-sm font-medium">Avg Transaction</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center gap-2 text-3xl font-bold">
+                            <div className="text-3xl font-bold flex items-center gap-2">
                                 <TrendingUp className="w-5 h-5 text-orange-400" /> $112.56
                             </div>
                         </CardContent>
@@ -237,7 +256,7 @@ export default function SalesAndUsagePage() {
                             </button>
 
                             {isDropdownOpen && (
-                                <div className="absolute right-0 z-20 w-48 mt-2 overflow-hidden text-sm border rounded-lg shadow-xl top-full bg-slate-800 border-slate-700">
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-20 text-sm">
                                     {["All Transactions", "Sales Only", "Usage Only"].map((option) => (
                                         <button
                                             key={option}
@@ -245,7 +264,7 @@ export default function SalesAndUsagePage() {
                                                 setFilterType(option);
                                                 setIsDropdownOpen(false);
                                             }}
-                                            className="flex items-center justify-between w-full px-4 py-2 text-left hover:bg-slate-700 text-slate-300"
+                                            className="w-full px-4 py-2 text-left hover:bg-slate-700 text-slate-300 flex items-center justify-between"
                                         >
                                             {option}
                                             {filterType === option && <Check className="w-4 h-4 text-blue-400" />}
@@ -257,8 +276,8 @@ export default function SalesAndUsagePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left text-blue-100">
-                                <thead className="text-xs text-blue-200 uppercase bg-blue-500/10">
+                            <table className="w-full text-left text-sm text-blue-100">
+                                <thead className="text-xs uppercase bg-blue-500/10 text-blue-200">
                                     <tr>
                                         <th className="px-4 py-3 rounded-l-lg">Number</th>
                                         <th className="px-4 py-3">Item Name</th>
@@ -271,7 +290,7 @@ export default function SalesAndUsagePage() {
                                 </thead>
                                 <tbody className="divide-y divide-blue-500/10">
                                     {filteredData.map((item) => (
-                                        <tr key={item.id} className="transition-colors hover:bg-blue-500/5">
+                                        <tr key={item.id} className="hover:bg-blue-500/5 transition-colors">
                                             <td className="px-4 py-3 font-medium text-white">{item.id}</td>
                                             <td className="px-4 py-3">{item.item}</td>
                                             <td className="px-4 py-3">{item.qty}</td>

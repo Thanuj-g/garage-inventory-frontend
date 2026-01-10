@@ -7,6 +7,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import SalesAndUsagePage from "./pages/SalesAndUsagePage";
 
+import PurchaseOrdersPage from "./pages/purchesOrder";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -16,6 +18,7 @@ export default function App() {
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/sales" element={<SalesAndUsagePage />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Routes>
