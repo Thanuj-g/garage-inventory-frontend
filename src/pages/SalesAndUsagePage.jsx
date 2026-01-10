@@ -143,12 +143,21 @@ export default function SalesAndUsagePage() {
                         <p className="text-blue-200">Monitor sales and internal usage</p>
                     </div>
                     <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+            <main className="flex-1 p-6 space-y-6 overflow-y-auto text-white bg-slate-800">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h2 className="mb-1 text-3xl font-bold">Sales & Usage Tracking</h2>
+                        <p className="text-blue-200">Monitor sales and internal usage</p>
+                    </div>
+                    <button className="flex items-center gap-2 px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
                         <Plus className="w-5 h-5" />
                         Record Transaction
                     </button>
                 </div>
 
                 {/* Info Cards */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
                         <CardHeader className="pb-2">
@@ -157,6 +166,16 @@ export default function SalesAndUsagePage() {
                         <CardContent>
                             <div className="text-3xl font-bold flex items-center gap-2">
                                 <span className="text-green-400 text-xl font-normal">$</span>787.92
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="bg-blue-500/20 backdrop-blur-lg border-blue-500/30">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-2 text-3xl font-bold">
+                                <span className="text-xl font-normal text-green-400">$</span>787.92
+p
                             </div>
                         </CardContent>
                     </Card>

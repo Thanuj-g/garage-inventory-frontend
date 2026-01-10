@@ -6,6 +6,7 @@ import Categories from "./pages/Categories";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import SalesAndUsagePage from "./pages/SalesAndUsagePage";
+
 import PurchaseOrdersPage from "./pages/purchesOrder";
 
 export default function App() {
