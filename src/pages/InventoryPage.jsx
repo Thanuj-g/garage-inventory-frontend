@@ -15,6 +15,8 @@ const initialData = [
   { part: "BRK-205", name: "Brake Fluid DOT 4", category: "Brake System", qty: 31, min: 12, price: "$12.99", location: "Shelf B1" },
   { part: "ELC-101", name: "Car Battery 12V", category: "Electrical", qty: 8, min: 5, price: "$149.99", location: "Storage C" },
   { part: "TYR-401", name: "Tire 205/55R16", category: "Tires", qty: 16, min: 8, price: "$95.00", location: "Tire Rack" },
+  { part: "ACC-001", name: "Car Seat Covers", category: "Accessories", qty: 12, min: 5, price: "$49.99", location: "Shelf D1" },
+  { part: "ACC-002", name: "Dashboard Mat", category: "Accessories", qty: 20, min: 10, price: "$19.99", location: "Shelf D2" },
 ];
 
 export default function InventoryPage() {

@@ -44,7 +44,8 @@ const categoryData = [
   { name: "Brake System", value: 25, color: "#10b981" },
   { name: "Oils & Fluids", value: 20, color: "#f59e0b" },
   { name: "Electrical", value: 12, color: "#8b5cf6" },
-  { name: "Others", value: 8, color: "#6b7280" },
+  { name: "Accessories", value: 5, color: "#ec4899" },
+  { name: "Others", value: 3, color: "#6b7280" },
 ];
 
 const stockLevelData = [
@@ -53,6 +54,7 @@ const stockLevelData = [
   { category: "Oils & Fluids", inStock: 189, lowStock: 15, outOfStock: 1 },
   { category: "Electrical", inStock: 98, lowStock: 5, outOfStock: 0 },
   { category: "Filters", inStock: 134, lowStock: 7, outOfStock: 1 },
+  { category: "Accessories", inStock: 32, lowStock: 0, outOfStock: 0 },
 ];
 
 const lowStockItems = [

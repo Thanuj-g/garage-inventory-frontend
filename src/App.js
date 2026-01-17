@@ -6,6 +6,9 @@ import Categories from "./pages/Categories";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import SalesAndUsagePage from "./pages/SalesAndUsagePage";
+import { SettingsPage } from './pages/SettingsPage';
+
+
 
 export default function App() {
   return (
@@ -18,6 +21,8 @@ export default function App() {
         <Route path="/categories" element={<Categories />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+         <Route path="/register" element={<RegisterPage />} />
+         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>
   );

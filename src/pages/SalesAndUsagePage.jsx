@@ -9,7 +9,6 @@ import {
 } from "../components/card";
 import {
     Plus,
-    DollarSign,
     ShoppingCart,
     Package,
     TrendingUp,
