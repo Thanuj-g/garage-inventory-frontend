@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import {
@@ -9,13 +9,8 @@ import {
   CardTitle,
 } from "../components/card";
 import { Button } from "../components/button";
-import {
-  Clock,
-  CheckCircle,
-  Truck,
-  Plus,
-  ChevronDown,
-} from "lucide-react";
+import { Clock, CheckCircle, Truck, Plus, ChevronDown } from "lucide-react";
+import CreatePurchaseOrderModal from "../components/CreatePurchaseOrderModal";
 
 const initialOrders = [
   {
@@ -65,11 +60,43 @@ const initialOrders = [
   },
 ];
 
+function formatMMDDYYYY(dateLike) {
+  // dateLike: "yyyy-mm-dd"
+  if (!dateLike) return "";
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return dateLike;
+
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+function nextPONumber(existing) {
+  const year = new Date().getFullYear();
+  const prefix = `PO-${year}-`;
+
+  const nums = existing
+    .map((o) => String(o.orderNumber || ""))
+    .filter((n) => n.startsWith(prefix))
+    .map((n) => Number(n.slice(prefix.length)))
+    .filter((n) => Number.isFinite(n));
+
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+}
+
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("purchase-orders");
   const [orders, setOrders] = useState(initialOrders);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const supplierOptions = useMemo(() => {
+    const set = new Set(orders.map((o) => o.supplier).filter(Boolean));
+    return Array.from(set).sort();
+  }, [orders]);
 
   const handleLogout = () => {
     navigate("/login");
@@ -77,6 +104,21 @@ export default function PurchaseOrdersPage() {
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleCreateOrder = (payload) => {
+    const newOrder = {
+      orderNumber: nextPONumber(orders),
+      supplier: payload.supplier,
+      orderDate: formatMMDDYYYY(new Date().toISOString().slice(0, 10)),
+      expectedDate: formatMMDDYYYY(payload.expectedDate),
+      items: payload.items,
+      amount: Number(payload.amount) || 0,
+      status: "Pending",
+      notes: payload.notes,
+    };
+
+    setOrders((prev) => [newOrder, ...prev]);
   };
 
   // Calculate statistics
@@ -100,7 +142,7 @@ export default function PurchaseOrdersPage() {
         </span>
       ),
       Delivered: (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full">
+        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full text-emerald-700 bg-emerald-100">
           <CheckCircle className="w-3 h-3" />
           Delivered
         </span>
@@ -135,7 +177,12 @@ export default function PurchaseOrdersPage() {
             <h1 className="text-3xl font-bold text-gray-900">Purchase Orders</h1>
             <p className="text-gray-500">Manage supplier orders and restocking</p>
           </div>
-          <Button className="flex items-center gap-2">
+
+          <Button
+            type="button"
+            className="flex items-center gap-2"
+            onClick={() => setIsCreateOpen(true)}
+          >
             <Plus className="w-4 h-4" />
             Create Order
           </Button>
@@ -288,6 +335,13 @@ export default function PurchaseOrdersPage() {
             </div>
           </CardContent>
         </Card>
+
+        <CreatePurchaseOrderModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={handleCreateOrder}
+          supplierOptions={supplierOptions}
+        />
       </main>
     </div>
   );
