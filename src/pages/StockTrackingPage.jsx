@@ -1,71 +1,93 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import { Search, AlertTriangle, TrendingDown, Package } from "lucide-react";
 import CriticalStock from "../components/CriticalStock";
+
+const API_BASE = "http://127.0.0.1:8000";
+
+function statusPillClasses(status) {
+  switch (status) {
+    case "Critical":
+      return "text-red-600 bg-red-100";
+    case "Low":
+      return "text-orange-600 bg-orange-100";
+    case "Healthy":
+      return "text-green-600 bg-green-100";
+    default:
+      return "text-gray-600 bg-gray-100";
+  }
+}
 
 export default function StockTrackingPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("stock-tracking");
   const [query, setQuery] = useState("");
 
-  const items = useMemo(
-    () => [
-      {
-        part: "ENG-001",
-        name: "Engine Oil 5W-30",
-        category: "Oils & Fluids",
-        stock: "5 / 100",
-        min: 20,
-        percent: 5,
-        status: "Critical",
-        date: "11/15/2024",
-      },
-      {
-        part: "BRK-102",
-        name: "Brake Pads - Front",
-        category: "Brake System",
-        stock: "8 / 50",
-        min: 15,
-        percent: 16,
-        status: "Critical",
-        date: "12/1/2024",
-      },
-      {
-        part: "ENG-015",
-        name: "Air Filter",
-        category: "Engine Parts",
-        stock: "3 / 40",
-        min: 10,
-        percent: 8,
-        status: "Critical",
-        date: "11/20/2024",
-      },
-    ],
-    []
-  );
+  const [items, setItems] = useState([]);
+  const [overview, setOverview] = useState({ critical: 0, low: 0, healthy: 0 });
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        // Load stats + table data in parallel
+        const qs = new URLSearchParams();
+        if (query.trim()) qs.set("search", query.trim());
+
+        const [overviewRes, itemsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/stock-tracking/overview/`, { signal: controller.signal }),
+          fetch(`${API_BASE}/api/stock-tracking/items/?${qs.toString()}`, { signal: controller.signal }),
+        ]);
+
+        if (!overviewRes.ok) throw new Error(`Failed to load overview (${overviewRes.status})`);
+        if (!itemsRes.ok) throw new Error(`Failed to load items (${itemsRes.status})`);
+
+        const overviewJson = await overviewRes.json();
+        const itemsJson = await itemsRes.json();
+
+        setOverview({
+          critical: Number(overviewJson?.critical ?? 0),
+          low: Number(overviewJson?.low ?? 0),
+          healthy: Number(overviewJson?.healthy ?? 0),
+        });
+        setItems(Array.isArray(itemsJson) ? itemsJson : []);
+      } catch (e) {
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load stock tracking data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+    return () => controller.abort();
+  }, [query]);
+
+  // Backend already filters by `search`, but keep this so UI behaves even if backend changes.
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
 
     return items.filter(
       (it) =>
-        it.part.toLowerCase().includes(q) ||
-        it.name.toLowerCase().includes(q) ||
-        it.category.toLowerCase().includes(q)
+        String(it.part || "").toLowerCase().includes(q) ||
+        String(it.name || "").toLowerCase().includes(q) ||
+        String(it.category || "").toLowerCase().includes(q)
     );
   }, [items, query]);
 
   const stats = useMemo(() => {
-    const critical = items.filter((i) => i.status === "Critical").length;
-    const low = items.filter((i) => i.status === "Low").length;
-    const healthy = items.filter((i) => i.status === "Healthy").length;
-
     return [
       {
         title: "Critical Stock",
-        value: critical,
+        value: overview.critical,
         description: "Items need immediate restock",
         icon: AlertTriangle,
         bg: "bg-red-50",
@@ -73,7 +95,7 @@ export default function StockTrackingPage() {
       },
       {
         title: "Low Stock",
-        value: low,
+        value: overview.low,
         description: "Items approaching reorder point",
         icon: TrendingDown,
         bg: "bg-orange-50",
@@ -81,14 +103,14 @@ export default function StockTrackingPage() {
       },
       {
         title: "Healthy Stock",
-        value: healthy,
+        value: overview.healthy,
         description: "Items with adequate stock",
         icon: Package,
         bg: "bg-green-50",
         text: "text-green-600",
       },
     ];
-  }, [items]);
+  }, [overview]);
 
   return (
     <div className="flex min-h-screen">
@@ -105,9 +127,10 @@ export default function StockTrackingPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Stock Tracking</h1>
-          <p className="text-gray-500">
-            Monitor inventory levels and get alerts
-          </p>
+          <p className="text-gray-500">Monitor inventory levels and get alerts</p>
+
+          {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
+          {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
         </div>
 
         {/* Stats */}
@@ -135,10 +158,7 @@ export default function StockTrackingPage() {
             </div>
 
             <div className="relative">
-              <Search
-                className="absolute left-3 top-2.5 text-gray-400"
-                size={18}
-              />
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -177,15 +197,19 @@ export default function StockTrackingPage() {
                       <div className="h-2 overflow-hidden bg-gray-200 rounded-full">
                         <div
                           className="h-full bg-gray-800"
-                          style={{ width: `${item.percent}%` }}
+                          style={{ width: `${Number(item.percent ?? 0)}%` }}
                         />
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
-                        {item.percent}%
+                        {Number(item.percent ?? 0)}%
                       </div>
                     </td>
                     <td>
-                      <span className="px-3 py-1 text-xs font-semibold text-red-600 bg-red-100 rounded-full">
+                      <span
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${statusPillClasses(
+                          item.status
+                        )}`}
+                      >
                         {item.status}
                       </span>
                     </td>
@@ -193,7 +217,7 @@ export default function StockTrackingPage() {
                   </tr>
                 ))}
 
-                {filteredItems.length === 0 && (
+                {filteredItems.length === 0 && !loading && (
                   <tr>
                     <td colSpan={7} className="py-8 text-gray-500">
                       No items match your search.
