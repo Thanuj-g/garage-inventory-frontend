@@ -1,63 +1,68 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import { FiPlus, FiEdit, FiTrash2, FiFolder } from "react-icons/fi";
 import AllCategoriesTable from "../components/AllCategoriesTable";
 import AddCategoryModal from "../components/AddCategoryModal";
 
-const initialCategories = [
-	{
-		name: "Engine Parts",
-		items: 156,
-		desc: "All engine-related components and parts",
-		color: "bg-blue-500",
-	},
-	{
-		name: "Brake System",
-		items: 89,
-		desc: "Brake pads, discs, calipers, and fluids",
-		color: "bg-red-500",
-	},
-	{
-		name: "Oils & Fluids",
-		items: 67,
-		desc: "Engine oils, transmission fluids, coolants",
-		color: "bg-orange-500",
-	},
-	{
-		name: "Electrical",
-		items: 102,
-		desc: "Batteries, alternators, starters, wiring",
-		color: "bg-yellow-500",
-	},
-	{
-		name: "Tires",
-		items: 45,
-		desc: "Tires and wheel-related components",
-		color: "bg-slate-700",
-	},
-	{
-		name: "Suspension",
-		items: 78,
-		desc: "Shocks, struts, springs, and bushings",
-		color: "bg-purple-500",
-	},
-	{
-		name: "Accessories",
-		items: 2,
-		desc: "Car accessories and miscellaneous items",
-		color: "bg-pink-500",
-	},
-];
+const API_BASE = "http://127.0.0.1:8000";
+
+function mapFromApi(cat) {
+	return {
+		id: cat.id,
+		name: cat.name,
+		desc: cat.desc ?? "",
+		color: cat.color ?? "bg-blue-500",
+		items: Number(cat.items ?? 0),
+	};
+}
+
+function mapToApi(payload) {
+	return {
+		name: payload.name,
+		desc: payload.desc ?? "",
+		color: payload.color ?? "bg-blue-500",
+	};
+}
 
 export default function Categories() {
 	const navigate = useNavigate();
 	const [currentPage, setCurrentPage] = useState("categories");
 
-	const [categories, setCategories] = useState(initialCategories);
+	const [categories, setCategories] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState("");
 
 	const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 	const [editingCategory, setEditingCategory] = useState(null);
+
+	const loadCategories = async (signal) => {
+		const res = await fetch(`${API_BASE}/api/categories/`, { signal });
+		if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
+		const json = await res.json();
+		setCategories(Array.isArray(json) ? json.map(mapFromApi) : []);
+	};
+
+	useEffect(() => {
+		const controller = new AbortController();
+
+		(async () => {
+			try {
+				setLoading(true);
+				setLoadError("");
+				await loadCategories(controller.signal);
+			} catch (e) {
+				if (e?.name !== "AbortError")
+					setLoadError(
+						e?.message || "Failed to load categories"
+					);
+			} finally {
+				setLoading(false);
+			}
+		})();
+
+		return () => controller.abort();
+	}, []);
 
 	const openAdd = () => {
 		setEditingCategory(null);
@@ -65,45 +70,73 @@ export default function Categories() {
 	};
 
 	const openEdit = (cat) => {
-		setEditingCategory(cat); // cat must include { name, desc, color, items }
+		// cat should include { id, name, desc, color, items }
+		setEditingCategory(cat);
 		setIsCategoryOpen(true);
 	};
 
-	const handleDelete = (cat) => {
+	const handleDelete = async (cat) => {
 		if (!window.confirm(`Delete category "${cat.name}"?`)) return;
-		setCategories((prev) => prev.filter((c) => c.name !== cat.name));
-	};
 
-	const handleSubmitCategory = (payload) => {
-		// edit mode
-		if (editingCategory) {
-			const originalName = payload.originalName || editingCategory.name;
-
-			setCategories((prev) =>
-				prev.map((c) =>
-					c.name === originalName
-						? {
-								...c,
-								name: payload.name,
-								desc: payload.desc,
-								color: payload.color,
-						  }
-						: c
-				)
-			);
+		if (!cat?.id) {
+			setLoadError("Cannot delete: category has no id from server.");
 			return;
 		}
 
-		// add mode
-		setCategories((prev) => [
-			{
-				name: payload.name,
-				desc: payload.desc,
-				color: payload.color,
-				items: 0,
-			},
-			...prev,
-		]);
+		try {
+			setLoadError("");
+			const res = await fetch(`${API_BASE}/api/categories/${cat.id}/`, {
+				method: "DELETE",
+			});
+			if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
+
+			setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+		} catch (e) {
+			setLoadError(e?.message || "Failed to delete category");
+		}
+	};
+
+	const handleSubmitCategory = async (payload) => {
+		try {
+			setLoadError("");
+			const body = JSON.stringify(mapToApi(payload));
+
+			// edit
+			if (editingCategory?.id) {
+				const res = await fetch(
+					`${API_BASE}/api/categories/${editingCategory.id}/`,
+					{
+						method: "PATCH",
+						headers: { "Content-Type": "application/json" },
+						body,
+					}
+				);
+				if (!res.ok) throw new Error(`Failed to update (${res.status})`);
+				const updated = mapFromApi(await res.json());
+
+				setCategories((prev) =>
+					prev.map((c) => (c.id === updated.id ? updated : c))
+				);
+				setIsCategoryOpen(false);
+				setEditingCategory(null);
+				return;
+			}
+
+			// add
+			const res = await fetch(`${API_BASE}/api/categories/`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body,
+			});
+			if (!res.ok) throw new Error(`Failed to create (${res.status})`);
+			const created = mapFromApi(await res.json());
+
+			setCategories((prev) => [created, ...prev]);
+			setIsCategoryOpen(false);
+			setEditingCategory(null);
+		} catch (e) {
+			setLoadError(e?.message || "Failed to save category");
+		}
 	};
 
 	return (
@@ -125,6 +158,17 @@ export default function Categories() {
 						<p className="text-gray-500">
 							Organize your inventory into categories
 						</p>
+
+						{loading && (
+							<div className="mt-2 text-sm text-gray-600">
+								Loading categories...
+							</div>
+						)}
+						{loadError && (
+							<div className="mt-2 text-sm text-red-600">
+								{loadError}
+							</div>
+						)}
 					</div>
 
 					<button
@@ -140,7 +184,7 @@ export default function Categories() {
 				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 					{categories.map((cat) => (
 						<div
-							key={cat.name}
+							key={cat.id ?? cat.name}
 							className="p-6 transition bg-white shadow-sm rounded-xl hover:shadow-md"
 						>
 							<div className="flex items-center gap-4 mb-4">
