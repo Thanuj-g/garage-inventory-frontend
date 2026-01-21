@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "../components/sidebar";
+import Sidebar from "../components/sidebar";
 import {
   Card,
   CardContent,
@@ -71,13 +71,12 @@ const lowStockItems = [
   { id: 5, name: "Coolant 5L", stock: 6, minStock: 15, category: "Fluids" },
 ];
 
-export function DashboardPage() {
+export default function DashboardPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar with vertical divider */}
       <Sidebar
         currentPage={currentPage}
         onNavigate={(page) => {
@@ -85,111 +84,106 @@ export function DashboardPage() {
           navigate(`/${page}`);
         }}
         onLogout={() => navigate("/")}
-        className="bg-blue-900 border-r border-white/30"
       />
 
-      {/* Main dashboard content */}
-      <main className="flex-1 bg-slate-800 text-white p-6 space-y-6 overflow-y-auto">
+      <main className="flex-1 min-h-screen p-6 space-y-6 overflow-y-auto text-gray-900 bg-gray-50">
         {/* Header */}
         <div>
-          <h2 className="text-3xl mb-1">Dashboard</h2>
-          <p className="text-blue-200">Overview of your garage inventory</p>
+          <h2 className="mb-1 text-3xl font-bold">Dashboard</h2>
+          <p className="text-gray-500">Overview of your garage inventory</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">Total Items</CardTitle>
-              <Package className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Total Items</CardTitle>
+              <Package className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">1,247</div>
-              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-green-400" /> +12% from last
+              <div className="text-2xl font-bold text-gray-900">1,247</div>
+              <p className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                <TrendingUp className="w-3 h-3 text-green-600" /> +12% from last
                 month
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Low Stock Items
-              </CardTitle>
-              <TrendingDown className="w-4 h-4 text-orange-400" />
+              <CardTitle className="text-sm text-gray-600">Low Stock Items</CardTitle>
+              <TrendingDown className="w-4 h-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">23</div>
-              <p className="text-blue-100 text-xs mt-1">Requires attention</p>
+              <div className="text-2xl font-bold text-gray-900">23</div>
+              <p className="mt-1 text-xs text-gray-500">Requires attention</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Monthly Sales
-              </CardTitle>
-              <DollarSign className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Monthly Sales</CardTitle>
+              <DollarSign className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">$6,800</div>
-              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-green-400" /> +8% from last
-                month
+              <div className="text-2xl font-bold text-gray-900">$6,800</div>
+              <p className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                <TrendingUp className="w-3 h-3 text-green-600" /> +8% from last month
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Pending Orders
-              </CardTitle>
-              <ShoppingCart className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Pending Orders</CardTitle>
+              <ShoppingCart className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">7</div>
-              <p className="text-blue-100 text-xs mt-1">3 arriving this week</p>
+              <div className="text-2xl font-bold text-gray-900">7</div>
+              <p className="mt-1 text-xs text-gray-500">3 arriving this week</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Sales Trend</CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardTitle className="text-gray-900">Sales Trend</CardTitle>
+              <CardDescription className="text-gray-500">
                 Monthly sales performance
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
-                  <XAxis dataKey="month" stroke="#cbd5e1" />
-                  <YAxis stroke="#cbd5e1" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" stroke="#6b7280" tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" tickLine={false} axisLine={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e5e7eb",
+                      color: "#111827",
+                    }}
                   />
                   <Line
                     type="monotone"
                     dataKey="sales"
-                    stroke="#3b82f6"
+                    stroke="#2563eb"
                     strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">
-                Inventory by Category
-              </CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardTitle className="text-gray-900">Inventory by Category</CardTitle>
+              <CardDescription className="text-gray-500">
                 Distribution of spare parts
               </CardDescription>
             </CardHeader>
@@ -202,8 +196,7 @@ export function DashboardPage() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
+                    outerRadius={90}
                     dataKey="value"
                   >
                     {categoryData.map((entry, index) => (
@@ -211,7 +204,11 @@ export function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e5e7eb",
+                      color: "#111827",
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -220,86 +217,74 @@ export function DashboardPage() {
         </div>
 
         {/* Stock Levels */}
-        <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">
-              Stock Levels by Category
-            </CardTitle>
-            <CardDescription className="text-blue-100">
+            <CardTitle className="text-gray-900">Stock Levels by Category</CardTitle>
+            <CardDescription className="text-gray-500">
               Overview of inventory status across categories
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={stockLevelData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
-                <XAxis dataKey="category" stroke="#cbd5e1" />
-                <YAxis stroke="#cbd5e1" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="category" stroke="#6b7280" tickLine={false} axisLine={false} />
+                <YAxis stroke="#6b7280" tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    borderColor: "#e5e7eb",
+                    color: "#111827",
+                  }}
                 />
-                <Bar
-                  dataKey="inStock"
-                  fill="#10b981"
-                  name="In Stock"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="lowStock"
-                  fill="#f59e0b"
-                  name="Low Stock"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="outOfStock"
-                  fill="#ef4444"
-                  name="Out of Stock"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="inStock" fill="#10b981" name="In Stock" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="lowStock" fill="#f59e0b" name="Low Stock" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="outOfStock" fill="#ef4444" name="Out of Stock" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Low Stock Alerts */}
-        <Card className="bg-blue-600/20 backdrop-blur-lg">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-orange-400" />
-              <CardTitle className="text-white">Low Stock Alerts</CardTitle>
+              <TrendingDown className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-gray-900">Low Stock Alerts</CardTitle>
             </div>
-            <CardDescription className="text-blue-100">
+            <CardDescription className="text-gray-500">
               Items that need restocking
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-3">
               {lowStockItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg"
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-white">{item.name}</p>
-                    <p className="text-sm text-blue-100">{item.category}</p>
+                    <p className="font-medium text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-500">{item.category}</p>
                   </div>
+
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-sm text-blue-100">
+                      <p className="text-sm text-gray-600">
                         Current:{" "}
-                        <span className="font-medium text-orange-400">
+                        <span className="font-semibold text-orange-600">
                           {item.stock}
                         </span>
                       </p>
-                      <p className="text-sm text-blue-100">
-                        Min: {item.minStock}
-                      </p>
+                      <p className="text-sm text-gray-500">Min: {item.minStock}</p>
                     </div>
-                    <div className="w-24 bg-blue-500/20 h-2 rounded-full overflow-hidden">
+
+                    <div className="w-24 h-2 overflow-hidden bg-gray-200 rounded-full">
                       <div
-                        className="bg-orange-400 h-full rounded-full"
+                        className="h-full bg-orange-500 rounded-full"
                         style={{
-                          width: `${(item.stock / item.minStock) * 100}%`,
+                          width: `${Math.min(100, (item.stock / item.minStock) * 100)}%`,
                         }}
                       />
                     </div>
@@ -313,5 +298,3 @@ export function DashboardPage() {
     </div>
   );
 }
-
-export default DashboardPage;

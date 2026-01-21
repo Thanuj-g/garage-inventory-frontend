@@ -9,6 +9,9 @@ import SalesAndUsagePage from "./pages/SalesAndUsagePage";
 import { SettingsPage } from './pages/SettingsPage';
 
 
+import PurchaseOrdersPage from "./pages/purchesOrder";
+import StockTrackingPage from "./pages/StockTrackingPage";
+import SupplierManagementPage from "./pages/SupplierManagementPage";
 
 export default function App() {
   return (
@@ -19,6 +22,9 @@ export default function App() {
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/sales" element={<SalesAndUsagePage />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
+        <Route path="/stock-tracking" element={<StockTrackingPage />} />
+        <Route path="/suppliers" element={<SupplierManagementPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
          <Route path="/register" element={<RegisterPage />} />
