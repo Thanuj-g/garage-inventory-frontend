@@ -6,6 +6,9 @@ import Categories from "./pages/Categories";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import SalesAndUsagePage from "./pages/SalesAndUsagePage";
+import { SettingsPage } from './pages/SettingsPage';
+
+
 import PurchaseOrdersPage from "./pages/purchesOrder";
 import StockTrackingPage from "./pages/StockTrackingPage";
 import SupplierManagementPage from "./pages/SupplierManagementPage";
@@ -24,6 +27,8 @@ export default function App() {
         <Route path="/suppliers" element={<SupplierManagementPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+         <Route path="/register" element={<RegisterPage />} />
+         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </BrowserRouter>
   );

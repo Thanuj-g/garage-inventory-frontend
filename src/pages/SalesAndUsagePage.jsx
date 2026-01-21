@@ -3,12 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "../components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/card";
 import {
-  Plus,
-  ShoppingCart,
-  Package,
-  TrendingUp,
-  ChevronDown,
-  Check,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/card";
+import {
+    Plus,
+    ShoppingCart,
+    Package,
+    TrendingUp,
+    ChevronDown,
+    Check,
 } from "lucide-react";
 import RecordTransactionModal from "../components/RecordTransactionModal";
 import {
