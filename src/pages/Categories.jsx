@@ -4,6 +4,7 @@ import Sidebar from "../components/sidebar";
 import { FiPlus, FiEdit, FiTrash2, FiFolder } from "react-icons/fi";
 import AllCategoriesTable from "../components/AllCategoriesTable";
 import AddCategoryModal from "../components/AddCategoryModal";
+import ConfirmModal from "../components/ConfirmModal"; // <-- add
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -35,6 +36,11 @@ export default function Categories() {
 
 	const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 	const [editingCategory, setEditingCategory] = useState(null);
+
+	// --- delete confirm modal state (add) ---
+	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState(null);
+	const [deleting, setDeleting] = useState(false);
 
 	const loadCategories = async (signal) => {
 		const res = await fetch(`${API_BASE}/api/categories/`, { signal });
@@ -75,24 +81,40 @@ export default function Categories() {
 		setIsCategoryOpen(true);
 	};
 
-	const handleDelete = async (cat) => {
-		if (!window.confirm(`Delete category "${cat.name}"?`)) return;
+	// Replace window.confirm flow with modal open
+	const handleDelete = (cat) => {
+		setLoadError("");
+		setDeleteTarget(cat);
+		setIsDeleteOpen(true);
+	};
+
+	const confirmDelete = async () => {
+		const cat = deleteTarget;
 
 		if (!cat?.id) {
 			setLoadError("Cannot delete: category has no id from server.");
+			setIsDeleteOpen(false);
+			setDeleteTarget(null);
 			return;
 		}
 
 		try {
+			setDeleting(true);
 			setLoadError("");
+
 			const res = await fetch(`${API_BASE}/api/categories/${cat.id}/`, {
 				method: "DELETE",
 			});
 			if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
 
 			setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+			setIsDeleteOpen(false);
+			setDeleteTarget(null);
 		} catch (e) {
 			setLoadError(e?.message || "Failed to delete category");
+			// keep modal open so user can retry or cancel
+		} finally {
+			setDeleting(false);
 		}
 	};
 
@@ -232,7 +254,7 @@ export default function Categories() {
 					onDelete={handleDelete}
 				/>
 
-				{/* Modal */}
+				{/* Add/Edit Modal */}
 				<AddCategoryModal
 					isOpen={isCategoryOpen}
 					onClose={() => {
@@ -242,6 +264,23 @@ export default function Categories() {
 					mode={editingCategory ? "edit" : "add"}
 					initialValues={editingCategory}
 					onSubmit={handleSubmitCategory}
+				/>
+
+				{/* Delete confirmation modal (add) */}
+				<ConfirmModal
+					isOpen={isDeleteOpen}
+					loading={deleting}
+					title="Delete Category"
+					message={`Delete category "${deleteTarget?.name ?? ""}"? This cannot be undone.`}
+					confirmText="Delete"
+					cancelText="Cancel"
+					destructive
+					onClose={() => {
+						if (deleting) return;
+						setIsDeleteOpen(false);
+						setDeleteTarget(null);
+					}}
+					onConfirm={confirmDelete}
 				/>
 			</main>
 		</div>

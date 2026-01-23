@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "../components/sidebar";
+import Sidebar from "../components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/card";
 import {
   Plus,
@@ -22,100 +22,31 @@ import {
   Legend,
 } from "recharts";
 
-const weeklyData = [
-  { day: "Mon", sales: 280, usage: 40 },
-  { day: "Tue", sales: 420, usage: 60 },
-  { day: "Wed", sales: 320, usage: 30 },
-  { day: "Thu", sales: 560, usage: 50 },
-  { day: "Fri", sales: 680, usage: 70 },
-  { day: "Sat", sales: 420, usage: 20 },
-  { day: "Sun", sales: 180, usage: 10 },
-];
+const API_BASE = "http://127.0.0.1:8000";
 
-const initialTransactionData = [
-  {
-    id: "TR-001",
-    item: "Engine Oil 5W-30",
-    qty: 3,
-    price: 25.99,
-    total: 77.97,
-    customer: "John Doe - Honda Civic",
-    type: "Sale",
-  },
-  {
-    id: "TR-102",
-    item: "Brake Pads - Front",
-    qty: 1,
-    price: 89.99,
-    total: 89.99,
-    customer: "Sarah Smith - Toyota Camry",
-    type: "Sale",
-  },
-  {
-    id: "TR-015",
-    item: "Air Filter",
-    qty: 2,
-    price: 15.5,
-    total: 31.0,
-    customer: "Mike Johnson - Ford F-150",
-    type: "Sale",
-  },
-  {
-    id: "TR-008",
-    item: "Coolant 5L",
-    qty: 1,
-    price: 18.75,
-    total: 18.75,
-    customer: "Internal Workshop",
-    type: "Usage",
-  },
-  {
-    id: "TR-205",
-    item: "Brake Fluid DOT 4",
-    qty: 2,
-    price: 12.99,
-    total: 25.98,
-    customer: "Emma Wilson - Mazda CX-5",
-    type: "Sale",
-  },
-  {
-    id: "TR-022",
-    item: "Spark Plugs Set",
-    qty: 1,
-    price: 32.99,
-    total: 32.99,
-    customer: "David Brown - BMW 3 Series",
-    type: "Sale",
-  },
-  {
-    id: "TR-101",
-    item: "Car Battery 12V",
-    qty: 1,
-    price: 149.99,
-    total: 149.99,
-    customer: "Lisa Anderson - Nissan Altima",
-    type: "Sale",
-  },
-  {
-    id: "TR-401",
-    item: "Tire 205/55R16",
-    qty: 4,
-    price: 95.0,
-    total: 380.0,
-    customer: "Robert Taylor - Hyundai Elantra",
-    type: "Sale",
-  },
-];
+function toMoney(n) {
+  const x = Number(n ?? 0);
+  return Number.isFinite(x) ? x : 0;
+}
 
-function nextTxnId(existing) {
-  const nums = existing
-    .map((t) => String(t.id || ""))
-    .filter((id) => id.startsWith("TR-"))
-    .map((id) => Number(id.slice(3)))
-    .filter((n) => Number.isFinite(n));
+function mapTxnFromApi(t) {
+  return {
+    id: t.id, // TR-xxx
+    item: t.item_name,
+    qty: Number(t.qty ?? 0),
+    price: toMoney(t.unit_price),
+    total: toMoney(t.total),
+    customer: t.customer ?? "",
+    type: t.txn_type, // "Sale" | "Usage"
+    partNumber: t.part_number ?? "",
+    createdAt: t.created_at,
+  };
+}
 
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return `TR-${String(next).padStart(3, "0")}`;
+function filterTypeToApiParam(filterType) {
+  if (filterType === "Sales Only") return "Sale";
+  if (filterType === "Usage Only") return "Usage";
+  return "";
 }
 
 export default function SalesAndUsagePage() {
@@ -125,8 +56,81 @@ export default function SalesAndUsagePage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [isRecordOpen, setIsRecordOpen] = useState(false);
-  const [transactions, setTransactions] = useState(initialTransactionData);
 
+  const [summary, setSummary] = useState({
+    total_revenue: 0,
+    todays_sales: 0,
+    items_sold: 0,
+    avg_transaction: 0,
+  });
+
+  const [weeklyData, setWeeklyData] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const loadSummary = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/sales-usage/summary/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load summary (${res.status})`);
+    const json = await res.json();
+    setSummary({
+      total_revenue: toMoney(json?.total_revenue),
+      todays_sales: Number(json?.todays_sales ?? 0),
+      items_sold: Number(json?.items_sold ?? 0),
+      avg_transaction: toMoney(json?.avg_transaction),
+    });
+  };
+
+  const loadWeekly = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/sales-usage/weekly/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load weekly data (${res.status})`);
+    const json = await res.json();
+    setWeeklyData(Array.isArray(json) ? json : []);
+  };
+
+  const loadTransactions = async (signal, typeParam) => {
+    const qs = new URLSearchParams();
+    if (typeParam) qs.set("type", typeParam);
+
+    const res = await fetch(
+      `${API_BASE}/api/sales-usage/transactions/?${qs.toString()}`,
+      {
+        signal,
+      }
+    );
+    if (!res.ok) throw new Error(`Failed to load transactions (${res.status})`);
+    const json = await res.json();
+    setTransactions(Array.isArray(json) ? json.map(mapTxnFromApi) : []);
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const typeParam = filterTypeToApiParam(filterType);
+
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        // cards + chart can load once, but safe to refresh whenever filter changes too
+        await Promise.all([
+          loadSummary(controller.signal),
+          loadWeekly(controller.signal),
+          loadTransactions(controller.signal, typeParam),
+        ]);
+      } catch (e) {
+        if (e?.name !== "AbortError")
+          setLoadError(e?.message || "Failed to load sales & usage data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [filterType]);
+
+  // Filter is already applied on backend via ?type=..., but keep client filter as backup.
   const filteredData = useMemo(() => {
     return transactions.filter((item) => {
       if (filterType === "Sales Only") return item.type === "Sale";
@@ -135,19 +139,42 @@ export default function SalesAndUsagePage() {
     });
   }, [transactions, filterType]);
 
-  const handleRecordTransaction = (payload) => {
-    const newTxn = {
-      id: nextTxnId(transactions),
-      item: payload.item,
-      qty: payload.qty,
-      price: payload.price,
-      total: Number((payload.qty * payload.price).toFixed(2)),
-      customer: payload.customer || (payload.type === "Usage" ? "Internal Workshop" : ""),
-      type: payload.type,
-      partNumber: payload.partNumber, // optional (kept for later)
-    };
+  const handleRecordTransaction = async (payload) => {
+    // payload from modal expected shape:
+    // { item, qty, price, customer, type, partNumber }
+    try {
+      setLoadError("");
 
-    setTransactions((prev) => [newTxn, ...prev]);
+      const res = await fetch(`${API_BASE}/api/sales-usage/transactions/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          txn_type: payload.type, // "Sale" | "Usage"
+          item_name: payload.item,
+          part_number: payload.partNumber || "",
+          qty: Number(payload.qty ?? 0),
+          unit_price: Number(payload.price ?? 0),
+          customer: payload.customer || "",
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Failed to record transaction (${res.status}) ${text}`.trim());
+      }
+
+      // refresh data after record (keeps cards/chart/stock accurate)
+      const typeParam = filterTypeToApiParam(filterType);
+      await Promise.all([
+        loadSummary(undefined),
+        loadWeekly(undefined),
+        loadTransactions(undefined, typeParam),
+      ]);
+
+      setIsRecordOpen(false);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to record transaction");
+    }
   };
 
   return (
@@ -167,6 +194,8 @@ export default function SalesAndUsagePage() {
           <div>
             <h2 className="mb-1 text-3xl font-bold">Sales &amp; Usage Tracking</h2>
             <p className="text-gray-500">Monitor sales and internal usage</p>
+            {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
+            {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
           </div>
 
           <button
@@ -189,7 +218,8 @@ export default function SalesAndUsagePage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 text-3xl font-bold">
-                <span className="text-xl font-normal text-green-600">$</span>787.92
+                <span className="text-xl font-normal text-green-600">$</span>
+                {toMoney(summary.total_revenue).toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -202,7 +232,8 @@ export default function SalesAndUsagePage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 text-3xl font-bold">
-                <ShoppingCart className="w-6 h-6 text-blue-600" /> 0
+                <ShoppingCart className="w-6 h-6 text-blue-600" />{" "}
+                {Number(summary.todays_sales ?? 0)}
               </div>
             </CardContent>
           </Card>
@@ -215,7 +246,8 @@ export default function SalesAndUsagePage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 text-3xl font-bold">
-                <Package className="w-6 h-6 text-purple-600" /> 14
+                <Package className="w-6 h-6 text-purple-600" />{" "}
+                {Number(summary.items_sold ?? 0)}
               </div>
             </CardContent>
           </Card>
@@ -228,7 +260,8 @@ export default function SalesAndUsagePage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 text-3xl font-bold">
-                <TrendingUp className="w-5 h-5 text-orange-600" /> $112.56
+                <TrendingUp className="w-5 h-5 text-orange-600" />{" "}
+                ${toMoney(summary.avg_transaction).toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -245,7 +278,10 @@ export default function SalesAndUsagePage() {
 
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={weeklyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <BarChart
+                data={weeklyData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="day" stroke="#6b7280" tickLine={false} axisLine={false} />
                 <YAxis
@@ -264,8 +300,20 @@ export default function SalesAndUsagePage() {
                   cursor={{ fill: "#f3f4f6" }}
                 />
                 <Legend />
-                <Bar dataKey="sales" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={40} />
-                <Bar dataKey="usage" name="Usage ($)" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={40} />
+                <Bar
+                  dataKey="sales"
+                  name="Sales ($)"
+                  fill="#2563eb"
+                  radius={[4, 4, 0, 0]}
+                  barSize={40}
+                />
+                <Bar
+                  dataKey="usage"
+                  name="Usage ($)"
+                  fill="#f59e0b"
+                  radius={[4, 4, 0, 0]}
+                  barSize={40}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -331,9 +379,9 @@ export default function SalesAndUsagePage() {
                       <td className="px-4 py-3 font-medium text-gray-900">{item.id}</td>
                       <td className="px-4 py-3">{item.item}</td>
                       <td className="px-4 py-3">{item.qty}</td>
-                      <td className="px-4 py-3">${item.price.toFixed(2)}</td>
+                      <td className="px-4 py-3">${toMoney(item.price).toFixed(2)}</td>
                       <td className="px-4 py-3 font-semibold text-gray-900">
-                        ${item.total.toFixed(2)}
+                        ${toMoney(item.total).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{item.customer}</td>
                       <td className="px-4 py-3">
@@ -350,6 +398,14 @@ export default function SalesAndUsagePage() {
                       </td>
                     </tr>
                   ))}
+
+                  {!loading && !loadError && filteredData.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-6 text-sm text-gray-500">
+                        No transactions found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

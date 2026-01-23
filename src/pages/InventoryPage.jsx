@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import SearchFilter from "../components/SearchFilter";
 import ActionButtons from "../components/ActionButtons";
 import AddItemModal from "../components/AddItemModal";
+import ConfirmModal from "../components/ConfirmModal"; // <-- add
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -29,6 +30,7 @@ function mapFromApi(it) {
     price: it.price != null && it.price !== "" ? `$${Number(it.price).toFixed(2)}` : "",
     location: it.location || "",
     supplier: it.supplier || "",
+    supplierId: it.supplier_id ?? null,
   };
 }
 
@@ -50,21 +52,31 @@ function mapToApi(payload) {
     min_stock: Number(payload.min ?? 0),
     price: parsePriceToNumber(payload.price),
     location: payload.location || "",
-    supplier: payload.supplier || "",
+    supplier_id: payload.supplierId ?? null,
   };
 }
 
 export default function InventoryPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("inventory");
-  const [data, setData] = useState([]); // was initialData
+
+  const [data, setData] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [categories, setCategories] = useState([]);
+
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // NEW
+  const [editingItem, setEditingItem] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  // --- delete confirm modal state (add) ---
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadItems = async (signal) => {
     const res = await fetch(`${API_BASE}/api/items/`, { signal });
@@ -73,7 +85,21 @@ export default function InventoryPage() {
     setData(items.map(mapFromApi));
   };
 
-  
+  const loadSuppliers = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/suppliers/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
+    const json = await res.json();
+    setSuppliers(Array.isArray(json) ? json.map((s) => ({ id: s.id, name: s.name })) : []);
+  };
+
+  const loadCategories = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/categories/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
+    const json = await res.json();
+    // CategorySerializer returns { id, name, desc, color, ... }
+    setCategories(Array.isArray(json) ? json.map((c) => ({ id: c.id, name: c.name })) : []);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -81,11 +107,13 @@ export default function InventoryPage() {
       try {
         setLoading(true);
         setLoadError("");
-        await loadItems(controller.signal);
+        await Promise.all([
+          loadItems(controller.signal),
+          loadSuppliers(controller.signal),
+          loadCategories(controller.signal), // <-- add
+        ]);
       } catch (e) {
-        if (e?.name !== "AbortError") {
-          setLoadError(e?.message || "Failed to load items");
-        }
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -94,25 +122,17 @@ export default function InventoryPage() {
     return () => controller.abort();
   }, []);
 
+  // Use backend categories for dropdown; fallback to DEFAULT_CATEGORIES if backend empty.
   const categoryOptions = useMemo(() => {
-    const normalize = (v) => String(v || "").trim().toLowerCase();
-
-    const fromData = data
-      .map((d) => (d.category || "").trim())
+    const names = categories
+      .map((c) => String(c?.name || "").trim())
       .filter(Boolean);
 
-    // Keep DEFAULT_CATEGORIES order, then append any new categories coming from API
-    const defaultNorm = new Set(DEFAULT_CATEGORIES.map(normalize));
-    const extras = Array.from(
-      new Set(
-        fromData
-          .filter((c) => !defaultNorm.has(normalize(c)))
-          .map((c) => c.trim())
-      )
-    ).sort((a, b) => a.localeCompare(b));
+    // unique + alpha sort
+    const uniqueSorted = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
 
-    return [...DEFAULT_CATEGORIES, ...extras];
-  }, [data]);
+    return uniqueSorted.length ? uniqueSorted : DEFAULT_CATEGORIES;
+  }, [categories]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -126,9 +146,7 @@ export default function InventoryPage() {
 
     return data.filter((d) => {
       const matchesQuery =
-        !q ||
-        d.name.toLowerCase().includes(q) ||
-        d.part.toLowerCase().includes(q);
+        !q || d.name.toLowerCase().includes(q) || d.part.toLowerCase().includes(q);
 
       const matchesCategory =
         selectedCategory === "all" || d.category === selectedCategory;
@@ -142,22 +160,38 @@ export default function InventoryPage() {
     setIsAddOpen(true);
   };
 
-  const handleDelete = async (item) => {
-    if (!window.confirm(`Delete ${item.part}?`)) return;
+  // Replace window.confirm flow with modal open
+  const handleDelete = (item) => {
+    setLoadError("");
+    setDeleteTarget(item);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    const item = deleteTarget;
+
     if (!item?.id) {
       setLoadError("Cannot delete: item has no id from server.");
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
       return;
     }
 
     try {
+      setDeleting(true);
       setLoadError("");
-      const res = await fetch(`${API_BASE}/api/items/${item.id}/`, {
-        method: "DELETE",
-      });
+
+      const res = await fetch(`${API_BASE}/api/items/${item.id}/`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
+
       setData((prev) => prev.filter((p) => p.id !== item.id));
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
     } catch (e) {
       setLoadError(e?.message || "Failed to delete item");
+      // keep modal open so user can retry or cancel
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -166,7 +200,6 @@ export default function InventoryPage() {
       setLoadError("");
       const body = JSON.stringify(mapToApi(payload));
 
-      // edit
       if (editingItem?.id) {
         const res = await fetch(`${API_BASE}/api/items/${editingItem.id}/`, {
           method: "PATCH",
@@ -182,7 +215,6 @@ export default function InventoryPage() {
         return;
       }
 
-      // add
       const res = await fetch(`${API_BASE}/api/items/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -276,6 +308,24 @@ export default function InventoryPage() {
           initialValues={editingItem}
           onSubmit={handleSubmitModal}
           categoryOptions={categoryOptions}
+          supplierOptions={suppliers}
+        />
+
+        {/* Delete confirmation modal (add) */}
+        <ConfirmModal
+          isOpen={isDeleteOpen}
+          loading={deleting}
+          title="Delete Item"
+          message={`Are you sure you want to delete "${deleteTarget?.part ?? ""}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive
+          onClose={() => {
+            if (deleting) return;
+            setIsDeleteOpen(false);
+            setDeleteTarget(null);
+          }}
+          onConfirm={confirmDelete}
         />
       </main>
     </div>
