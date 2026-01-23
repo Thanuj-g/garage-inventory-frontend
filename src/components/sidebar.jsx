@@ -36,9 +36,6 @@ export function Sidebar({ currentPage, onNavigate, onLogout }) {
           <div>
             <h1 className="font-semibold">Garage Inventory</h1>
             <p className="text-xs text-slate-400">Management System</p>
-            <p className="mt-1 text-xs break-all text-slate-300">
-              {window?.location?.href}
-            </p>
           </div>
         </div>
       </div>

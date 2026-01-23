@@ -1,347 +1,396 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../components/card";
-import { Button } from "../components/button";
-import { Clock, CheckCircle, Truck, Plus, ChevronDown } from "lucide-react";
-import CreatePurchaseOrderModal from "../components/CreatePurchaseOrderModal";
 
-const initialOrders = [
-  {
-    orderNumber: "PO-2024-001",
-    supplier: "LubeTech Industries",
-    orderDate: "12/10/2024",
-    expectedDate: "12/20/2024",
-    items: "Engine Oil 5W-30 (50 units)",
-    amount: 1299.50,
-    status: "Shipped",
-  },
-  {
-    orderNumber: "PO-2024-002",
-    supplier: "BrakeMax Corp",
-    orderDate: "12/12/2024",
-    expectedDate: "12/22/2024",
-    items: "Brake Pads - Front (30 units)",
-    amount: 2699.70,
-    status: "Approved",
-  },
-  {
-    orderNumber: "PO-2024-003",
-    supplier: "FilterMax Solutions",
-    orderDate: "12/13/2024",
-    expectedDate: "12/18/2024",
-    items: "Air Filters (40 units)",
-    amount: 620.00,
-    status: "Delivered",
-  },
-  {
-    orderNumber: "PO-2024-004",
-    supplier: "SparkPlus Distribution",
-    orderDate: "12/14/2024",
-    expectedDate: "12/25/2024",
-    items: "Spark Plugs Set (60 units)",
-    amount: 1979.40,
-    status: "Pending",
-  },
-  {
-    orderNumber: "PO-2024-005",
-    supplier: "PowerCell Batteries",
-    orderDate: "12/15/2024",
-    expectedDate: "12/28/2024",
-    items: "Car Battery 12V (15 units)",
-    amount: 2249.85,
-    status: "Approved",
-  },
-];
+const API_BASE = "http://127.0.0.1:8000";
 
-function formatMMDDYYYY(dateLike) {
-  // dateLike: "yyyy-mm-dd"
-  if (!dateLike) return "";
-  const d = new Date(dateLike);
-  if (Number.isNaN(d.getTime())) return dateLike;
-
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
+function mapFromApi(po) {
+  return {
+    id: po.id,
+    orderNumber: po.orderNumber ?? "",
+    supplier: po.supplier ?? "",
+    orderDate: po.orderDate ?? "",
+    expectedDate: po.expectedDate ?? "",
+    items: po.items ?? "",
+    amount: Number(po.amount ?? 0),
+    status: po.status ?? "Pending",
+    notes: po.notes ?? "",
+  };
 }
 
-function nextPONumber(existing) {
-  const year = new Date().getFullYear();
-  const prefix = `PO-${year}-`;
-
-  const nums = existing
-    .map((o) => String(o.orderNumber || ""))
-    .filter((n) => n.startsWith(prefix))
-    .map((n) => Number(n.slice(prefix.length)))
-    .filter((n) => Number.isFinite(n));
-
-  const next = (nums.length ? Math.max(...nums) : 0) + 1;
-  return `${prefix}${String(next).padStart(3, "0")}`;
+function mapToApi(payload) {
+  return {
+    orderNumber: payload.orderNumber || undefined, // backend auto-generates if missing
+    supplier: payload.supplier ?? "",
+    orderDate: payload.orderDate || undefined,
+    expectedDate: payload.expectedDate || null,
+    items: payload.items ?? "",
+    amount: Number(payload.amount ?? 0),
+    status: payload.status ?? "Pending",
+    notes: payload.notes ?? "",
+  };
 }
 
-export default function PurchaseOrdersPage() {
+export default function PurchesOrder() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState("purchase-orders");
-  const [orders, setOrders] = useState(initialOrders);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState("purchase-orders"); // <-- change this
 
-  const supplierOptions = useMemo(() => {
-    const set = new Set(orders.map((o) => o.supplier).filter(Boolean));
-    return Array.from(set).sort();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [form, setForm] = useState({
+    orderNumber: "",
+    supplier: "",
+    orderDate: "",
+    expectedDate: "",
+    items: "",
+    amount: "",
+    status: "Pending",
+    notes: "",
+  });
+
+  const totals = useMemo(() => {
+    const totalOrders = orders.length;
+    const pending = orders.filter((o) => o.status === "Pending").length;
+    const delivered = orders.filter((o) => o.status === "Delivered").length;
+    const totalValue = orders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+    return { totalOrders, pending, delivered, totalValue };
   }, [orders]);
 
-  const handleLogout = () => {
-    navigate("/login");
+  const loadOrders = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/purchase-orders/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load purchase orders (${res.status})`);
+    const json = await res.json();
+    setOrders(Array.isArray(json) ? json.map(mapFromApi) : []);
   };
 
-  const handleNavigate = (page) => {
-    setCurrentPage(page);
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+        await loadOrders(controller.signal);
+      } catch (e) {
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load purchase orders");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
+
+  const handleCreate = async () => {
+    try {
+      setLoadError("");
+      const res = await fetch(`${API_BASE}/api/purchase-orders/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapToApi(form)),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Failed to create PO (${res.status}) ${text}`.trim());
+      }
+      const created = mapFromApi(await res.json());
+      setOrders((prev) => [created, ...prev]);
+      setIsCreateOpen(false);
+      setForm({
+        orderNumber: "",
+        supplier: "",
+        orderDate: "",
+        expectedDate: "",
+        items: "",
+        amount: "",
+        status: "Pending",
+        notes: "",
+      });
+    } catch (e) {
+      setLoadError(e?.message || "Failed to create purchase order");
+    }
   };
 
-  const handleCreateOrder = (payload) => {
-    const newOrder = {
-      orderNumber: nextPONumber(orders),
-      supplier: payload.supplier,
-      orderDate: formatMMDDYYYY(new Date().toISOString().slice(0, 10)),
-      expectedDate: formatMMDDYYYY(payload.expectedDate),
-      items: payload.items,
-      amount: Number(payload.amount) || 0,
-      status: "Pending",
-      notes: payload.notes,
-    };
-
-    setOrders((prev) => [newOrder, ...prev]);
+  const patchOrder = async (id, patch) => {
+    const res = await fetch(`${API_BASE}/api/purchase-orders/${id}/`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Update failed (${res.status}) ${text}`.trim());
+    }
+    return mapFromApi(await res.json());
   };
 
-  // Calculate statistics
-  const pendingCount = orders.filter((o) => o.status === "Pending").length;
-  const approvedCount = orders.filter((o) => o.status === "Approved").length;
-  const inTransitCount = orders.filter((o) => o.status === "Shipped").length;
-  const totalValue = orders.reduce((sum, order) => sum + order.amount, 0);
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      Shipped: (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
-          <Truck className="w-3 h-3" />
-          Shipped
-        </span>
-      ),
-      Approved: (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
-          <CheckCircle className="w-3 h-3" />
-          Approved
-        </span>
-      ),
-      Delivered: (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full text-emerald-700 bg-emerald-100">
-          <CheckCircle className="w-3 h-3" />
-          Delivered
-        </span>
-      ),
-      Pending: (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-full">
-          <Clock className="w-3 h-3" />
-          Pending
-        </span>
-      ),
-    };
-    return badges[status] || status;
+  const handleMarkStatus = async (id, status) => {
+    try {
+      setLoadError("");
+      const updated = await patchOrder(id, { status });
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    } catch (e) {
+      setLoadError(e?.message || "Failed to update status");
+    }
   };
 
-  const filteredOrders =
-    filterStatus === "all"
-      ? orders
-      : orders.filter((o) => o.status.toLowerCase() === filterStatus.toLowerCase());
+  const handleReceive = async (id) => {
+    try {
+      setLoadError("");
+      const res = await fetch(`${API_BASE}/api/purchase-orders/${id}/receive/`, { method: "POST" });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Receive failed (${res.status}) ${text}`.trim());
+      }
+      const updated = mapFromApi(await res.json());
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    } catch (e) {
+      setLoadError(e?.message || "Failed to receive purchase order");
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-900">
       <Sidebar
         currentPage={currentPage}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
+        onNavigate={(page) => {
+          setCurrentPage(page);
+          navigate(`/${page}`);
+        }}
+        onLogout={() => navigate("/")}
       />
 
-      <main className="flex-1 p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+      <main className="flex-1 min-h-screen p-6 overflow-y-auto bg-gray-50">
+        <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Purchase Orders</h1>
-            <p className="text-gray-500">Manage supplier orders and restocking</p>
+            <p className="text-gray-500">Create and track supplier purchase orders</p>
+            {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
+            {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
           </div>
 
-          <Button
+          <button
             type="button"
-            className="flex items-center gap-2"
             onClick={() => setIsCreateOpen(true)}
+            className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
           >
-            <Plus className="w-4 h-4" />
-            Create Order
-          </Button>
+            Create PO
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Pending Orders</p>
-                  <p className="text-3xl font-bold text-gray-900">{pendingCount}</p>
-                </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Clock className="w-6 h-6 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Approved Orders</p>
-                  <p className="text-3xl font-bold text-gray-900">{approvedCount}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">In Transit</p>
-                  <p className="text-3xl font-bold text-gray-900">{inTransitCount}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <Truck className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Total Order Value</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    ${totalValue.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-gray-500">Active orders</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Summary */}
+        <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-4">
+          <div className="p-4 bg-white rounded shadow">
+            <p className="text-sm text-gray-500">Total Orders</p>
+            <p className="text-lg font-bold">{totals.totalOrders}</p>
+          </div>
+          <div className="p-4 bg-white rounded shadow">
+            <p className="text-sm text-gray-500">Pending</p>
+            <p className="text-lg font-bold">{totals.pending}</p>
+          </div>
+          <div className="p-4 bg-white rounded shadow">
+            <p className="text-sm text-gray-500">Delivered</p>
+            <p className="text-lg font-bold">{totals.delivered}</p>
+          </div>
+          <div className="p-4 bg-white rounded shadow">
+            <p className="text-sm text-gray-500">Total Value</p>
+            <p className="text-lg font-bold">${totals.totalValue.toFixed(2)}</p>
+          </div>
         </div>
 
-        {/* Orders Table */}
-        <Card className="bg-white">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-semibold">Purchase Orders</CardTitle>
-                <CardDescription>
-                  Track all purchase orders and their status
-                </CardDescription>
-              </div>
-              <div className="relative">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 pr-10 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Orders</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                </select>
-                <ChevronDown className="absolute w-4 h-4 text-gray-500 transform -translate-y-1/2 pointer-events-none right-3 top-1/2" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Order Number
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Supplier
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Order Date
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Expected Date
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Items
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Amount
-                    </th>
-                    <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                      Status
-                    </th>
+        {/* Table */}
+        <div className="p-4 bg-white rounded shadow">
+          <h2 className="mb-1 text-lg font-semibold">Orders</h2>
+          <p className="mb-4 text-gray-500">Latest purchase orders</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse table-auto">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 text-left">PO Number</th>
+                  <th className="p-2 text-left">Supplier</th>
+                  <th className="p-2 text-left">Order Date</th>
+                  <th className="p-2 text-left">Expected</th>
+                  <th className="p-2 text-left">Items</th>
+                  <th className="p-2 text-left">Amount</th>
+                  <th className="p-2 text-left">Status</th>
+                  <th className="p-2 text-left">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o.id} className="border-b hover:bg-gray-50">
+                    <td className="p-2 font-medium">{o.orderNumber}</td>
+                    <td className="p-2">{o.supplier}</td>
+                    <td className="p-2">{o.orderDate}</td>
+                    <td className="p-2">{o.expectedDate || "-"}</td>
+                    <td className="p-2">{o.items}</td>
+                    <td className="p-2">${Number(o.amount || 0).toFixed(2)}</td>
+                    <td className="p-2">{o.status}</td>
+                    <td className="p-2 space-x-2">
+                      <button
+                        type="button"
+                        className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+                        onClick={() => handleMarkStatus(o.id, "Approved")}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+                        onClick={() => handleMarkStatus(o.id, "Shipped")}
+                      >
+                        Ship
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 text-sm text-white bg-green-600 rounded hover:bg-green-700"
+                        onClick={() => handleReceive(o.id)}
+                        disabled={o.status === "Delivered"}
+                        title={o.status === "Delivered" ? "Already delivered" : "Receive and restock"}
+                      >
+                        Receive
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredOrders.map((order) => (
-                    <tr
-                      key={order.orderNumber}
-                      className="transition-colors hover:bg-gray-50"
-                    >
-                      <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                        {order.orderNumber}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {order.supplier}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {order.orderDate}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {order.expectedDate}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {order.items}
-                      </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-gray-900">
-                        ${order.amount.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-4 text-sm">
-                        {getStatusBadge(order.status)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                ))}
 
-        <CreatePurchaseOrderModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSubmit={handleCreateOrder}
-          supplierOptions={supplierOptions}
-        />
+                {!loading && !loadError && orders.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="p-4 text-sm text-gray-500">
+                      No purchase orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Simple Create Modal */}
+        {isCreateOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-xl p-4 bg-white rounded shadow">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Create Purchase Order</h3>
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded hover:bg-gray-100"
+                  onClick={() => setIsCreateOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label className="text-sm">
+                  PO Number (optional)
+                  <input
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.orderNumber}
+                    onChange={(e) => setForm((p) => ({ ...p, orderNumber: e.target.value }))}
+                    placeholder="Leave blank to auto-generate"
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Supplier
+                  <input
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.supplier}
+                    onChange={(e) => setForm((p) => ({ ...p, supplier: e.target.value }))}
+                    placeholder="Supplier name"
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Order Date
+                  <input
+                    type="date"
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.orderDate}
+                    onChange={(e) => setForm((p) => ({ ...p, orderDate: e.target.value }))}
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Expected Date
+                  <input
+                    type="date"
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.expectedDate}
+                    onChange={(e) => setForm((p) => ({ ...p, expectedDate: e.target.value }))}
+                  />
+                </label>
+
+                <label className="text-sm md:col-span-2">
+                  Items (summary)
+                  <input
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.items}
+                    onChange={(e) => setForm((p) => ({ ...p, items: e.target.value }))}
+                    placeholder="e.g. Engine Oil 5W-30 (50 units)"
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Amount
+                  <input
+                    type="number"
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.amount}
+                    onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
+                    placeholder="0.00"
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Status
+                  <select
+                    className="w-full p-2 mt-1 border rounded"
+                    value={form.status}
+                    onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+                  >
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Shipped</option>
+                    <option>Delivered</option>
+                    <option>Canceled</option>
+                  </select>
+                </label>
+
+                <label className="text-sm md:col-span-2">
+                  Notes
+                  <textarea
+                    className="w-full p-2 mt-1 border rounded"
+                    rows={3}
+                    value={form.notes}
+                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 border rounded hover:bg-gray-100"
+                  onClick={() => setIsCreateOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+                  onClick={handleCreate}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

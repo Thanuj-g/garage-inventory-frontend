@@ -1,52 +1,69 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import AddSupplierModal from "../components/AddSupplierModal";
 import { FaBuilding, FaUsers, FaStar, FaPlus, FaPhone, FaEnvelope } from "react-icons/fa";
+
+const API_BASE = "http://127.0.0.1:8000";
+
+function mapFromApi(s) {
+  return {
+    id: s.id,
+    name: s.name,
+    contact: s.contact ?? "",
+    email: s.email ?? "",
+    phone: s.phone ?? "",
+    products: s.products ?? "",
+    rating: Number(s.rating ?? 0),
+    orders: Number(s.orders ?? 0),
+    address: s.address ?? "",
+  };
+}
+
+function mapToApi(payload) {
+  return {
+    name: payload.name,
+    contact: payload.contact ?? "",
+    email: payload.email ?? "",
+    phone: payload.phone ?? "",
+    products: payload.products ?? "",
+    address: payload.address ?? "",
+  };
+}
 
 export default function SupplierManagementPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("suppliers");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const [suppliers, setSuppliers] = useState([
-    {
-      name: "LubeTech Industries",
-      contact: "John Smith",
-      email: "john@lubetech.com",
-      phone: "+1 555-0101",
-      products: "Oils, Lubricants, Fluids",
-      rating: 4.8,
-      orders: 145,
-    },
-    {
-      name: "AutoParts Co",
-      contact: "Sarah Johnson",
-      email: "sarah@autoparts.com",
-      phone: "+1 555-0102",
-      products: "Brake Systems, Suspension",
-      rating: 4.6,
-      orders: 98,
-    },
-    {
-      name: "FilterMax Solutions",
-      contact: "Mike Davis",
-      email: "mike@filtermax.com",
-      phone: "+1 555-0103",
-      products: "Filters, Air Systems",
-      rating: 4.9,
-      orders: 167,
-    },
-    {
-      name: "SparkPlus Distribution",
-      contact: "Emma Wilson",
-      email: "emma@sparkplus.com",
-      phone: "+1 555-0104",
-      products: "Ignition Parts, Engine Components",
-      rating: 4.5,
-      orders: 76,
-    },
-  ]);
+  const [suppliers, setSuppliers] = useState([]); // <-- removed hardcoded list
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const loadSuppliers = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/suppliers/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
+    const json = await res.json();
+    setSuppliers(Array.isArray(json) ? json.map(mapFromApi) : []);
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+        await loadSuppliers(controller.signal);
+      } catch (e) {
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load suppliers");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
 
   const totalSuppliers = suppliers.length;
   const activeSuppliers = Math.max(0, suppliers.length - 1); // example
@@ -54,26 +71,26 @@ export default function SupplierManagementPage() {
   const averageRating =
     suppliers.length > 0
       ? (
-          suppliers.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) /
-          suppliers.length
+          suppliers.reduce((sum, s) => sum + (Number(s.rating) || 0), 0) / suppliers.length
         ).toFixed(1)
       : "0.0";
 
-  const handleAddSupplier = (payload) => {
-    setSuppliers((prev) => [
-      {
-        name: payload.name,
-        contact: payload.contact,
-        email: payload.email,
-        phone: payload.phone,
-        products: payload.products,
-        rating: 0,
-        orders: 0,
-        // keep address if you want later in table/cards
-        address: payload.address,
-      },
-      ...prev,
-    ]);
+  const handleAddSupplier = async (payload) => {
+    try {
+      setLoadError("");
+      const res = await fetch(`${API_BASE}/api/suppliers/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapToApi(payload)),
+      });
+      if (!res.ok) throw new Error(`Failed to create supplier (${res.status})`);
+      const created = mapFromApi(await res.json());
+
+      setSuppliers((prev) => [created, ...prev]);
+      setIsAddOpen(false);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to add supplier");
+    }
   };
 
   return (
@@ -93,6 +110,9 @@ export default function SupplierManagementPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Supplier Management</h1>
             <p className="text-gray-500">Manage your suppliers and contacts</p>
+
+            {loading && <div className="mt-2 text-sm text-gray-600">Loading suppliers...</div>}
+            {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
           </div>
 
           <button
@@ -153,7 +173,7 @@ export default function SupplierManagementPage() {
 
               <tbody>
                 {suppliers.map((s, idx) => (
-                  <tr key={`${s.name}-${idx}`} className="border-b hover:bg-gray-50">
+                  <tr key={s.id ?? `${s.name}-${idx}`} className="border-b hover:bg-gray-50">
                     <td className="p-2 font-medium">{s.name}</td>
                     <td className="p-2">{s.contact}</td>
                     <td className="p-2 space-y-1">
@@ -174,6 +194,14 @@ export default function SupplierManagementPage() {
                     <td className="p-2">{s.orders}</td>
                   </tr>
                 ))}
+
+                {!loading && !loadError && suppliers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-sm text-gray-500">
+                      No suppliers found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
