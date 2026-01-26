@@ -42,6 +42,12 @@ const initialCategories = [
 		desc: "Shocks, struts, springs, and bushings",
 		color: "bg-purple-500",
 	},
+	{
+		name: "Accessories",
+		items: 2,
+		desc: "Car accessories and miscellaneous items",
+		color: "bg-pink-500",
+	},
 ];
 
 export default function Categories() {
