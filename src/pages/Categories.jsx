@@ -5,6 +5,7 @@ import { FiPlus, FiEdit, FiTrash2, FiFolder } from "react-icons/fi";
 import AllCategoriesTable from "../components/AllCategoriesTable";
 import AddCategoryModal from "../components/AddCategoryModal";
 import ConfirmModal from "../components/ConfirmModal"; // <-- add
+import { authFetch, getUser, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -43,7 +44,7 @@ export default function Categories() {
 	const [deleting, setDeleting] = useState(false);
 
 	const loadCategories = async (signal) => {
-		const res = await fetch(`${API_BASE}/api/categories/`, { signal });
+		const res = await authFetch(`${API_BASE}/api/categories/`, { signal });
 		if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
 		const json = await res.json();
 		setCategories(Array.isArray(json) ? json.map(mapFromApi) : []);
@@ -102,7 +103,7 @@ export default function Categories() {
 			setDeleting(true);
 			setLoadError("");
 
-			const res = await fetch(`${API_BASE}/api/categories/${cat.id}/`, {
+			const res = await authFetch(`${API_BASE}/api/categories/${cat.id}/`, {
 				method: "DELETE",
 			});
 			if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
@@ -123,16 +124,12 @@ export default function Categories() {
 			setLoadError("");
 			const body = JSON.stringify(mapToApi(payload));
 
-			// edit
 			if (editingCategory?.id) {
-				const res = await fetch(
-					`${API_BASE}/api/categories/${editingCategory.id}/`,
-					{
-						method: "PATCH",
-						headers: { "Content-Type": "application/json" },
-						body,
-					}
-				);
+				const res = await authFetch(`${API_BASE}/api/categories/${editingCategory.id}/`, {
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body,
+				});
 				if (!res.ok) throw new Error(`Failed to update (${res.status})`);
 				const updated = mapFromApi(await res.json());
 
@@ -144,8 +141,7 @@ export default function Categories() {
 				return;
 			}
 
-			// add
-			const res = await fetch(`${API_BASE}/api/categories/`, {
+			const res = await authFetch(`${API_BASE}/api/categories/`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body,
@@ -169,7 +165,10 @@ export default function Categories() {
 					setCurrentPage(page);
 					navigate(`/${page}`);
 				}}
-				onLogout={() => navigate("/")}
+				onLogout={() => {
+					logout();
+					navigate("/login", { replace: true });
+				}}
 			/>
 
 			<main className="flex-1 p-6 bg-gray-50">

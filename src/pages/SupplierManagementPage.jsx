@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import AddSupplierModal from "../components/AddSupplierModal";
 import { FaBuilding, FaUsers, FaStar, FaPlus, FaPhone, FaEnvelope } from "react-icons/fa";
+import { authFetch, getUser, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -41,7 +42,7 @@ export default function SupplierManagementPage() {
   const [loadError, setLoadError] = useState("");
 
   const loadSuppliers = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/suppliers/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
     if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
     const json = await res.json();
     setSuppliers(Array.isArray(json) ? json.map(mapFromApi) : []);
@@ -76,21 +77,16 @@ export default function SupplierManagementPage() {
       : "0.0";
 
   const handleAddSupplier = async (payload) => {
-    try {
-      setLoadError("");
-      const res = await fetch(`${API_BASE}/api/suppliers/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mapToApi(payload)),
-      });
-      if (!res.ok) throw new Error(`Failed to create supplier (${res.status})`);
-      const created = mapFromApi(await res.json());
+    const res = await authFetch(`${API_BASE}/api/suppliers/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mapToApi(payload)),
+    });
+    if (!res.ok) throw new Error(`Failed to create supplier (${res.status})`);
+    const created = mapFromApi(await res.json());
 
-      setSuppliers((prev) => [created, ...prev]);
-      setIsAddOpen(false);
-    } catch (e) {
-      setLoadError(e?.message || "Failed to add supplier");
-    }
+    setSuppliers((prev) => [created, ...prev]);
+    setIsAddOpen(false);
   };
 
   return (
@@ -101,7 +97,10 @@ export default function SupplierManagementPage() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-6 overflow-y-auto bg-gray-50">

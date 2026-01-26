@@ -6,6 +6,7 @@ import SearchFilter from "../components/SearchFilter";
 import ActionButtons from "../components/ActionButtons";
 import AddItemModal from "../components/AddItemModal";
 import ConfirmModal from "../components/ConfirmModal"; // <-- add
+import { authFetch, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -79,21 +80,21 @@ export default function InventoryPage() {
   const [deleting, setDeleting] = useState(false);
 
   const loadItems = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/items/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/items/`, { signal });
     if (!res.ok) throw new Error(`Failed to load items (${res.status})`);
     const items = await res.json();
     setData(items.map(mapFromApi));
   };
 
   const loadSuppliers = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/suppliers/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
     if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
     const json = await res.json();
     setSuppliers(Array.isArray(json) ? json.map((s) => ({ id: s.id, name: s.name })) : []);
   };
 
   const loadCategories = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/categories/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/categories/`, { signal });
     if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
     const json = await res.json();
     // CategorySerializer returns { id, name, desc, color, ... }
@@ -181,7 +182,7 @@ export default function InventoryPage() {
       setDeleting(true);
       setLoadError("");
 
-      const res = await fetch(`${API_BASE}/api/items/${item.id}/`, { method: "DELETE" });
+      const res = await authFetch(`${API_BASE}/api/items/${item.id}/`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
 
       setData((prev) => prev.filter((p) => p.id !== item.id));
@@ -201,7 +202,7 @@ export default function InventoryPage() {
       const body = JSON.stringify(mapToApi(payload));
 
       if (editingItem?.id) {
-        const res = await fetch(`${API_BASE}/api/items/${editingItem.id}/`, {
+        const res = await authFetch(`${API_BASE}/api/items/${editingItem.id}/`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body,
@@ -215,7 +216,7 @@ export default function InventoryPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/items/`, {
+      const res = await authFetch(`${API_BASE}/api/items/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body,
@@ -239,7 +240,10 @@ export default function InventoryPage() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-6 bg-gray-50">

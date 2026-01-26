@@ -22,6 +22,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { authFetch, getUser, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -72,7 +73,7 @@ export default function SalesAndUsagePage() {
   const [loadError, setLoadError] = useState("");
 
   const loadSummary = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/sales-usage/summary/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/sales-usage/summary/`, { signal });
     if (!res.ok) throw new Error(`Failed to load summary (${res.status})`);
     const json = await res.json();
     setSummary({
@@ -84,7 +85,7 @@ export default function SalesAndUsagePage() {
   };
 
   const loadWeekly = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/sales-usage/weekly/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/sales-usage/weekly/`, { signal });
     if (!res.ok) throw new Error(`Failed to load weekly data (${res.status})`);
     const json = await res.json();
     setWeeklyData(Array.isArray(json) ? json : []);
@@ -94,12 +95,7 @@ export default function SalesAndUsagePage() {
     const qs = new URLSearchParams();
     if (typeParam) qs.set("type", typeParam);
 
-    const res = await fetch(
-      `${API_BASE}/api/sales-usage/transactions/?${qs.toString()}`,
-      {
-        signal,
-      }
-    );
+    const res = await authFetch(`${API_BASE}/api/sales-usage/transactions/?${qs.toString()}`, { signal });
     if (!res.ok) throw new Error(`Failed to load transactions (${res.status})`);
     const json = await res.json();
     setTransactions(Array.isArray(json) ? json.map(mapTxnFromApi) : []);
@@ -146,7 +142,7 @@ export default function SalesAndUsagePage() {
     try {
       setLoadError("");
 
-      const res = await fetch(`${API_BASE}/api/sales-usage/transactions/`, {
+      const res = await authFetch(`${API_BASE}/api/sales-usage/transactions/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,7 +182,10 @@ export default function SalesAndUsagePage() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-6 space-y-6 overflow-y-auto text-gray-900 bg-gray-50">
