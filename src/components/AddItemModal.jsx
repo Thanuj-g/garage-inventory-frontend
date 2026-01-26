@@ -12,24 +12,30 @@ function formatPrice(value) {
 export default function AddItemModal({
   isOpen,
   onClose,
-
-  // NEW
-  mode = "add", // "add" | "edit"
-  initialValues = null, // item to edit
-  onSubmit, // (payload) => void
-
+  mode = "add",
+  initialValues = null,
+  onSubmit,
   categoryOptions = [],
+  supplierOptions = [], // <-- add: [{id, name}]
 }) {
   const options = useMemo(
     () => categoryOptions.map((c) => String(c || "").trim()).filter(Boolean),
     [categoryOptions]
   );
 
+  const supplierOpts = useMemo(
+    () =>
+      (Array.isArray(supplierOptions) ? supplierOptions : [])
+        .map((s) => ({ id: s?.id, name: String(s?.name || "").trim() }))
+        .filter((s) => s.id != null && s.name),
+    [supplierOptions]
+  );
+
   const [form, setForm] = useState({
     part: "",
     name: "",
     category: "",
-    supplier: "",
+    supplierId: "", // <-- change
     qty: "",
     min: "",
     price: "",
@@ -44,17 +50,16 @@ export default function AddItemModal({
       part: iv.part ?? "",
       name: iv.name ?? "",
       category: iv.category ?? "",
-      supplier: iv.supplier ?? "",
+      supplierId: iv.supplierId ?? "", // <-- change
       qty: iv.qty ?? "",
       min: iv.min ?? "",
-      price: String(iv.price ?? "").replace(/^\$/, ""), // show without $ in input
+      price: String(iv.price ?? "").replace(/^\$/, ""),
       location: iv.location ?? "",
     });
 
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose?.();
     };
-
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, initialValues, onClose]);
@@ -73,12 +78,11 @@ export default function AddItemModal({
       part: String(form.part || "").trim(),
       name: String(form.name || "").trim(),
       category: form.category || "Uncategorized",
+      supplierId: form.supplierId ? Number(form.supplierId) : null, // <-- send id
       qty: Number(form.qty || 0),
       min: Number(form.min || 0),
-      price: formatPrice(form.price || "0.00"),
+      price: form.price || "0.00",
       location: String(form.location || "").trim(),
-      supplier: String(form.supplier || "").trim(),
-      // for updates: keep a reference to the original item key
       originalPart: initialValues?.part,
     };
 
@@ -169,11 +173,21 @@ export default function AddItemModal({
                 <label className="block mb-2 text-sm font-medium text-gray-700">
                   Supplier
                 </label>
-                <Input
-                  value={form.supplier}
-                  onChange={setField("supplier")}
-                  placeholder="LubeTech"
-                />
+                <div className="relative">
+                  <select
+                    value={form.supplierId}
+                    onChange={setField("supplierId")}
+                    className="w-full px-3 py-2 bg-white border rounded appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select supplier</option>
+                    {supplierOpts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="absolute text-gray-400 -translate-y-1/2 pointer-events-none right-3 top-1/2" />
+                </div>
               </div>
 
               <div>
