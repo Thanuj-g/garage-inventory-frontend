@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
+import { authFetch, getUser, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -60,7 +61,7 @@ export default function PurchesOrder() {
   }, [orders]);
 
   const loadOrders = async (signal) => {
-    const res = await fetch(`${API_BASE}/api/purchase-orders/`, { signal });
+    const res = await authFetch(`${API_BASE}/api/purchase-orders/`, { signal });
     if (!res.ok) throw new Error(`Failed to load purchase orders (${res.status})`);
     const json = await res.json();
     setOrders(Array.isArray(json) ? json.map(mapFromApi) : []);
@@ -85,7 +86,7 @@ export default function PurchesOrder() {
   const handleCreate = async () => {
     try {
       setLoadError("");
-      const res = await fetch(`${API_BASE}/api/purchase-orders/`, {
+      const res = await authFetch(`${API_BASE}/api/purchase-orders/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mapToApi(form)),
@@ -113,7 +114,7 @@ export default function PurchesOrder() {
   };
 
   const patchOrder = async (id, patch) => {
-    const res = await fetch(`${API_BASE}/api/purchase-orders/${id}/`, {
+    const res = await authFetch(`${API_BASE}/api/purchase-orders/${id}/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -136,18 +137,13 @@ export default function PurchesOrder() {
   };
 
   const handleReceive = async (id) => {
-    try {
-      setLoadError("");
-      const res = await fetch(`${API_BASE}/api/purchase-orders/${id}/receive/`, { method: "POST" });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`Receive failed (${res.status}) ${text}`.trim());
-      }
-      const updated = mapFromApi(await res.json());
-      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
-    } catch (e) {
-      setLoadError(e?.message || "Failed to receive purchase order");
+    const res = await authFetch(`${API_BASE}/api/purchase-orders/${id}/receive/`, { method: "POST" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Receive failed (${res.status}) ${text}`.trim());
     }
+    const updated = mapFromApi(await res.json());
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
   };
 
   return (
@@ -158,7 +154,10 @@ export default function PurchesOrder() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-6 overflow-y-auto bg-gray-50">

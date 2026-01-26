@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import { Search, AlertTriangle, TrendingDown, Package } from "lucide-react";
 import CriticalStock from "../components/CriticalStock";
+import { authFetch, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -43,8 +44,8 @@ export default function StockTrackingPage() {
         if (query.trim()) qs.set("search", query.trim());
 
         const [overviewRes, itemsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/stock-tracking/overview/`, { signal: controller.signal }),
-          fetch(`${API_BASE}/api/stock-tracking/items/?${qs.toString()}`, { signal: controller.signal }),
+          authFetch(`${API_BASE}/api/stock-tracking/overview/`, { signal: controller.signal }),
+          authFetch(`${API_BASE}/api/stock-tracking/items/?${qs.toString()}`, { signal: controller.signal }),
         ]);
 
         if (!overviewRes.ok) throw new Error(`Failed to load overview (${overviewRes.status})`);
@@ -120,7 +121,10 @@ export default function StockTrackingPage() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-8 bg-gray-50">

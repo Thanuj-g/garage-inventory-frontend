@@ -29,6 +29,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { authFetch, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -65,12 +66,10 @@ export default function DashboardPage() {
         setLoading(true);
         setLoadError("");
 
-        const res = await fetch(
-          `${API_BASE}/api/dashboard/overview/`,
-          { signal: controller.signal }
-        );
-        if (!res.ok)
-          throw new Error(`Failed to load dashboard (${res.status})`);
+        const res = await authFetch(`${API_BASE}/api/dashboard/overview/`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Failed to load dashboard (${res.status})`);
         const json = await res.json();
 
         setStats({
@@ -114,7 +113,10 @@ export default function DashboardPage() {
           setCurrentPage(page);
           navigate(`/${page}`);
         }}
-        onLogout={() => navigate("/")}
+        onLogout={() => {
+          logout();
+          navigate("/login", { replace: true });
+        }}
       />
 
       <main className="flex-1 min-h-screen p-6 space-y-6 overflow-y-auto text-gray-900 bg-gray-50">
