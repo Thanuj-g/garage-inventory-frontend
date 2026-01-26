@@ -1,38 +1,138 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
 import Header from "../components/Header";
 import SearchFilter from "../components/SearchFilter";
 import ActionButtons from "../components/ActionButtons";
 import AddItemModal from "../components/AddItemModal";
+import ConfirmModal from "../components/ConfirmModal"; // <-- add
 
-const initialData = [
-  { part: "ENG-001", name: "Engine Oil 5W-30", category: "Oils & Fluids", qty: 45, min: 20, price: "$25.99", location: "Shelf A1" },
-  { part: "BRK-102", name: "Brake Pads - Front", category: "Brake System", qty: 28, min: 15, price: "$89.99", location: "Shelf B3" },
-  { part: "ENG-015", name: "Air Filter", category: "Engine Parts", qty: 34, min: 10, price: "$15.50", location: "Shelf A2" },
-  { part: "ENG-022", name: "Spark Plugs Set", category: "Engine Parts", qty: 67, min: 25, price: "$32.99", location: "Shelf A3" },
-  { part: "FLD-008", name: "Coolant 5L", category: "Oils & Fluids", qty: 22, min: 15, price: "$18.75", location: "Shelf A1" },
-  { part: "BRK-205", name: "Brake Fluid DOT 4", category: "Brake System", qty: 31, min: 12, price: "$12.99", location: "Shelf B1" },
-  { part: "ELC-101", name: "Car Battery 12V", category: "Electrical", qty: 8, min: 5, price: "$149.99", location: "Storage C" },
-  { part: "TYR-401", name: "Tire 205/55R16", category: "Tires", qty: 16, min: 8, price: "$95.00", location: "Tire Rack" },
+const API_BASE = "http://127.0.0.1:8000";
+
+const DEFAULT_CATEGORIES = [
+  "Engine Parts",
+  "Brake System",
+  "Oils & Fluids",
+  "Electrical",
+  "Tires",
+  "Suspension",
+  "Transmission",
 ];
+
+function mapFromApi(it) {
+  return {
+    id: it.id,
+    part: it.part_number,
+    name: it.name,
+    category: it.category || "",
+    qty: it.qty ?? 0,
+    min: it.min_stock ?? 0,
+    price: it.price != null && it.price !== "" ? `$${Number(it.price).toFixed(2)}` : "",
+    location: it.location || "",
+    supplier: it.supplier || "",
+    supplierId: it.supplier_id ?? null,
+  };
+}
+
+function parsePriceToNumber(price) {
+  if (price == null) return null;
+  const s = String(price).trim();
+  if (!s) return null;
+  const cleaned = s.replace(/[$,\s]/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mapToApi(payload) {
+  return {
+    part_number: payload.part,
+    name: payload.name,
+    category: payload.category || "",
+    qty: Number(payload.qty ?? 0),
+    min_stock: Number(payload.min ?? 0),
+    price: parsePriceToNumber(payload.price),
+    location: payload.location || "",
+    supplier_id: payload.supplierId ?? null,
+  };
+}
 
 export default function InventoryPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("inventory");
-  const [data, setData] = useState(initialData);
+
+  const [data, setData] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [categories, setCategories] = useState([]);
+
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // NEW
+  const [editingItem, setEditingItem] = useState(null);
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  // --- delete confirm modal state (add) ---
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadItems = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/items/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load items (${res.status})`);
+    const items = await res.json();
+    setData(items.map(mapFromApi));
+  };
+
+  const loadSuppliers = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/suppliers/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
+    const json = await res.json();
+    setSuppliers(Array.isArray(json) ? json.map((s) => ({ id: s.id, name: s.name })) : []);
+  };
+
+  const loadCategories = async (signal) => {
+    const res = await fetch(`${API_BASE}/api/categories/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
+    const json = await res.json();
+    // CategorySerializer returns { id, name, desc, color, ... }
+    setCategories(Array.isArray(json) ? json.map((c) => ({ id: c.id, name: c.name })) : []);
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+        await Promise.all([
+          loadItems(controller.signal),
+          loadSuppliers(controller.signal),
+          loadCategories(controller.signal), // <-- add
+        ]);
+      } catch (e) {
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
+
+  // Use backend categories for dropdown; fallback to DEFAULT_CATEGORIES if backend empty.
   const categoryOptions = useMemo(() => {
-    const set = new Set(
-      data.map((d) => (d.category || "").trim()).filter(Boolean)
-    );
-    return Array.from(set).sort();
-  }, [data]);
+    const names = categories
+      .map((c) => String(c?.name || "").trim())
+      .filter(Boolean);
+
+    // unique + alpha sort
+    const uniqueSorted = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+
+    return uniqueSorted.length ? uniqueSorted : DEFAULT_CATEGORIES;
+  }, [categories]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -46,9 +146,7 @@ export default function InventoryPage() {
 
     return data.filter((d) => {
       const matchesQuery =
-        !q ||
-        d.name.toLowerCase().includes(q) ||
-        d.part.toLowerCase().includes(q);
+        !q || d.name.toLowerCase().includes(q) || d.part.toLowerCase().includes(q);
 
       const matchesCategory =
         selectedCategory === "all" || d.category === selectedCategory;
@@ -62,50 +160,75 @@ export default function InventoryPage() {
     setIsAddOpen(true);
   };
 
+  // Replace window.confirm flow with modal open
   const handleDelete = (item) => {
-    if (!window.confirm(`Delete ${item.part}?`)) return;
-    setData((prev) => prev.filter((p) => p.part !== item.part));
+    setLoadError("");
+    setDeleteTarget(item);
+    setIsDeleteOpen(true);
   };
 
-  const handleSubmitModal = (payload) => {
-    // payload.originalPart is set when editing
-    if (editingItem) {
-      const originalPart = payload.originalPart || editingItem.part;
+  const confirmDelete = async () => {
+    const item = deleteTarget;
 
-      setData((prev) =>
-        prev.map((it) =>
-          it.part === originalPart
-            ? {
-                ...it,
-                part: payload.part,
-                name: payload.name,
-                category: payload.category,
-                qty: payload.qty,
-                min: payload.min,
-                price: payload.price,
-                location: payload.location,
-                supplier: payload.supplier,
-              }
-            : it
-        )
-      );
+    if (!item?.id) {
+      setLoadError("Cannot delete: item has no id from server.");
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
       return;
     }
 
-    // add
-    setData((prev) => [
-      {
-        part: payload.part,
-        name: payload.name,
-        category: payload.category,
-        qty: payload.qty,
-        min: payload.min,
-        price: payload.price,
-        location: payload.location,
-        supplier: payload.supplier,
-      },
-      ...prev,
-    ]);
+    try {
+      setDeleting(true);
+      setLoadError("");
+
+      const res = await fetch(`${API_BASE}/api/items/${item.id}/`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Failed to delete (${res.status})`);
+
+      setData((prev) => prev.filter((p) => p.id !== item.id));
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to delete item");
+      // keep modal open so user can retry or cancel
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSubmitModal = async (payload) => {
+    try {
+      setLoadError("");
+      const body = JSON.stringify(mapToApi(payload));
+
+      if (editingItem?.id) {
+        const res = await fetch(`${API_BASE}/api/items/${editingItem.id}/`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        if (!res.ok) throw new Error(`Failed to update (${res.status})`);
+        const updated = await res.json();
+
+        setData((prev) => prev.map((it) => (it.id === editingItem.id ? mapFromApi(updated) : it)));
+        setIsAddOpen(false);
+        setEditingItem(null);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/items/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (!res.ok) throw new Error(`Failed to create (${res.status})`);
+      const created = await res.json();
+
+      setData((prev) => [mapFromApi(created), ...prev]);
+      setIsAddOpen(false);
+      setEditingItem(null);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to save item");
+    }
   };
 
   return (
@@ -121,6 +244,9 @@ export default function InventoryPage() {
 
       <main className="flex-1 min-h-screen p-6 bg-gray-50">
         <Header onAdd={handleAdd} />
+
+        {loading && <div className="mb-3 text-sm text-gray-600">Loading inventory...</div>}
+        {loadError && <div className="mb-3 text-sm text-red-600">{loadError}</div>}
 
         <SearchFilter
           onSearch={handleSearch}
@@ -146,8 +272,8 @@ export default function InventoryPage() {
             </thead>
 
             <tbody>
-              {filtered.map((item, index) => (
-                <tr key={index} className="transition border-b hover:bg-gray-50">
+              {filtered.map((item) => (
+                <tr key={item.id ?? item.part} className="transition border-b hover:bg-gray-50">
                   <td className="p-4 font-medium">{item.part}</td>
                   <td className="p-4">{item.name}</td>
                   <td className="p-4">{item.category}</td>
@@ -182,6 +308,24 @@ export default function InventoryPage() {
           initialValues={editingItem}
           onSubmit={handleSubmitModal}
           categoryOptions={categoryOptions}
+          supplierOptions={suppliers}
+        />
+
+        {/* Delete confirmation modal (add) */}
+        <ConfirmModal
+          isOpen={isDeleteOpen}
+          loading={deleting}
+          title="Delete Item"
+          message={`Are you sure you want to delete "${deleteTarget?.part ?? ""}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive
+          onClose={() => {
+            if (deleting) return;
+            setIsDeleteOpen(false);
+            setDeleteTarget(null);
+          }}
+          onConfirm={confirmDelete}
         />
       </main>
     </div>

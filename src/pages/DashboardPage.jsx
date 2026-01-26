@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "../components/sidebar";
+import Sidebar from "../components/sidebar";
 import {
   Card,
   CardContent,
@@ -30,52 +30,84 @@ import {
   Cell,
 } from "recharts";
 
-const salesData = [
-  { month: "Jan", sales: 4500 },
-  { month: "Feb", sales: 5200 },
-  { month: "Mar", sales: 4800 },
-  { month: "Apr", sales: 6300 },
-  { month: "May", sales: 7100 },
-  { month: "Jun", sales: 6800 },
-];
+const API_BASE = "http://127.0.0.1:8000";
 
-const categoryData = [
-  { name: "Engine Parts", value: 35, color: "#3b82f6" },
-  { name: "Brake System", value: 25, color: "#10b981" },
-  { name: "Oils & Fluids", value: 20, color: "#f59e0b" },
-  { name: "Electrical", value: 12, color: "#8b5cf6" },
-  { name: "Others", value: 8, color: "#6b7280" },
-];
+function toMoney(n) {
+  const x = Number(n ?? 0);
+  return Number.isFinite(x) ? x : 0;
+}
 
-const stockLevelData = [
-  { category: "Engine Parts", inStock: 245, lowStock: 12, outOfStock: 3 },
-  { category: "Brake System", inStock: 156, lowStock: 8, outOfStock: 2 },
-  { category: "Oils & Fluids", inStock: 189, lowStock: 15, outOfStock: 1 },
-  { category: "Electrical", inStock: 98, lowStock: 5, outOfStock: 0 },
-  { category: "Filters", inStock: 134, lowStock: 7, outOfStock: 1 },
-];
-
-const lowStockItems = [
-  { id: 1, name: "Engine Oil 5W-30", stock: 5, minStock: 20, category: "Oils" },
-  {
-    id: 2,
-    name: "Brake Pads - Front",
-    stock: 8,
-    minStock: 15,
-    category: "Brakes",
-  },
-  { id: 3, name: "Air Filter", stock: 3, minStock: 10, category: "Engine" },
-  { id: 4, name: "Spark Plugs", stock: 12, minStock: 25, category: "Engine" },
-  { id: 5, name: "Coolant 5L", stock: 6, minStock: 15, category: "Fluids" },
-];
-
-export function DashboardPage() {
+export default function DashboardPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("dashboard");
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const [stats, setStats] = useState({
+    totalItems: 0,
+    lowStockItems: 0,
+    monthlySales: 0,
+    pendingOrders: 0,
+    monthlySalesDeltaPct: null,
+  });
+
+  const [salesData, setSalesData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [stockLevelData, setStockLevelData] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError("");
+
+        const res = await fetch(
+          `${API_BASE}/api/dashboard/overview/`,
+          { signal: controller.signal }
+        );
+        if (!res.ok)
+          throw new Error(`Failed to load dashboard (${res.status})`);
+        const json = await res.json();
+
+        setStats({
+          totalItems: Number(json?.stats?.totalItems ?? 0),
+          lowStockItems: Number(json?.stats?.lowStockItems ?? 0),
+          monthlySales: toMoney(json?.stats?.monthlySales),
+          pendingOrders: Number(json?.stats?.pendingOrders ?? 0),
+          monthlySalesDeltaPct:
+            json?.stats?.monthlySalesDeltaPct == null
+              ? null
+              : Number(json.stats.monthlySalesDeltaPct),
+        });
+
+        setSalesData(Array.isArray(json?.salesData) ? json.salesData : []);
+        setCategoryData(Array.isArray(json?.categoryData) ? json.categoryData : []);
+        setStockLevelData(Array.isArray(json?.stockLevelData) ? json.stockLevelData : []);
+        setLowStockItems(Array.isArray(json?.lowStockItems) ? json.lowStockItems : []);
+      } catch (e) {
+        if (e?.name !== "AbortError")
+          setLoadError(e?.message || "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
+
+  const monthlyDeltaLabel = useMemo(() => {
+    if (stats.monthlySalesDeltaPct == null) return null;
+    const pct = stats.monthlySalesDeltaPct;
+    const sign = pct >= 0 ? "+" : "";
+    return `${sign}${pct.toFixed(1)}% from last month`;
+  }, [stats.monthlySalesDeltaPct]);
+
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar with vertical divider */}
       <Sidebar
         currentPage={currentPage}
         onNavigate={(page) => {
@@ -83,111 +115,131 @@ export function DashboardPage() {
           navigate(`/${page}`);
         }}
         onLogout={() => navigate("/")}
-        className="bg-blue-900 border-r border-white/30"
       />
 
-      {/* Main dashboard content */}
-      <main className="flex-1 bg-slate-800 text-white p-6 space-y-6 overflow-y-auto">
+      <main className="flex-1 min-h-screen p-6 space-y-6 overflow-y-auto text-gray-900 bg-gray-50">
         {/* Header */}
         <div>
-          <h2 className="text-3xl mb-1">Dashboard</h2>
-          <p className="text-blue-200">Overview of your garage inventory</p>
+          <h2 className="mb-1 text-3xl font-bold">Dashboard</h2>
+          <p className="text-gray-500">Overview of your garage inventory</p>
+          {loading && (
+            <div className="mt-2 text-sm text-gray-600">Loading...</div>
+          )}
+          {loadError && (
+            <div className="mt-2 text-sm text-red-600">{loadError}</div>
+          )}
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">Total Items</CardTitle>
-              <Package className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Total Items</CardTitle>
+              <Package className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">1,247</div>
-              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-green-400" /> +12% from last
-                month
+              <div className="text-2xl font-bold text-gray-900">
+                {Number(stats.totalItems).toLocaleString()}
+              </div>
+              <p className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                <TrendingUp className="w-3 h-3 text-green-600" /> Live from backend
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Low Stock Items
-              </CardTitle>
-              <TrendingDown className="w-4 h-4 text-orange-400" />
+              <CardTitle className="text-sm text-gray-600">Low Stock Items</CardTitle>
+              <TrendingDown className="w-4 h-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">23</div>
-              <p className="text-blue-100 text-xs mt-1">Requires attention</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {Number(stats.lowStockItems)}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Requires attention</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Monthly Sales
-              </CardTitle>
-              <DollarSign className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Monthly Sales</CardTitle>
+              <DollarSign className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">$6,800</div>
-              <p className="text-blue-100 text-xs mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-green-400" /> +8% from last
-                month
+              <div className="text-2xl font-bold text-gray-900">
+                ${toMoney(stats.monthlySales).toFixed(2)}
+              </div>
+              <p className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                <TrendingUp className="w-3 h-3 text-green-600" />{" "}
+                {monthlyDeltaLabel ?? "This month"}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-white text-sm">
-                Pending Orders
-              </CardTitle>
-              <ShoppingCart className="w-4 h-4 text-white/70" />
+              <CardTitle className="text-sm text-gray-600">Pending Orders</CardTitle>
+              <ShoppingCart className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">7</div>
-              <p className="text-blue-100 text-xs mt-1">3 arriving this week</p>
+              <div className="text-2xl font-bold text-gray-900">
+                {Number(stats.pendingOrders)}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Pending / Approved / Shipped
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">Sales Trend</CardTitle>
-              <CardDescription className="text-blue-100">
-                Monthly sales performance
+              <CardTitle className="text-gray-900">Sales Trend</CardTitle>
+              <CardDescription className="text-gray-500">
+                Last 6 months
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
-                  <XAxis dataKey="month" stroke="#cbd5e1" />
-                  <YAxis stroke="#cbd5e1" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#6b7280"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#6b7280"
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      borderColor: "#e5e7eb",
+                      color: "#111827",
+                    }}
                   />
                   <Line
                     type="monotone"
                     dataKey="sales"
-                    stroke="#3b82f6"
+                    stroke="#2563eb"
                     strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-500/20 backdrop-blur-lg">
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">
-                Inventory by Category
-              </CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardTitle className="text-gray-900">Inventory by Category</CardTitle>
+              <CardDescription className="text-gray-500">
                 Distribution of spare parts
               </CardDescription>
             </CardHeader>
@@ -200,8 +252,7 @@ export function DashboardPage() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
+                    outerRadius={90}
                     dataKey="value"
                   >
                     {categoryData.map((entry, index) => (
@@ -209,7 +260,11 @@ export function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      borderColor: "#e5e7eb",
+                      color: "#111827",
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -218,23 +273,38 @@ export function DashboardPage() {
         </div>
 
         {/* Stock Levels */}
-        <Card className="bg-blue-500/20 backdrop-blur-lg">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">
-              Stock Levels by Category
-            </CardTitle>
-            <CardDescription className="text-blue-100">
-              Overview of inventory status across categories
+            <CardTitle className="text-gray-900">Stock Levels by Category</CardTitle>
+            <CardDescription className="text-gray-500">
+              Inventory status across categories
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={stockLevelData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff33" />
-                <XAxis dataKey="category" stroke="#cbd5e1" />
-                <YAxis stroke="#cbd5e1" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e5e7eb"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="category"
+                  stroke="#6b7280"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#1e293b", color: "#fff" }}
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    borderColor: "#e5e7eb",
+                    color: "#111827",
+                  }}
                 />
                 <Bar
                   dataKey="inStock"
@@ -260,50 +330,62 @@ export function DashboardPage() {
         </Card>
 
         {/* Low Stock Alerts */}
-        <Card className="bg-blue-600/20 backdrop-blur-lg">
+        <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-orange-400" />
-              <CardTitle className="text-white">Low Stock Alerts</CardTitle>
+              <TrendingDown className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-gray-900">Low Stock Alerts</CardTitle>
             </div>
-            <CardDescription className="text-blue-100">
+            <CardDescription className="text-gray-500">
               Items that need restocking
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-3">
               {lowStockItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg"
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-white">{item.name}</p>
-                    <p className="text-sm text-blue-100">{item.category}</p>
+                    <p className="font-medium text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-500">{item.category}</p>
                   </div>
+
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-sm text-blue-100">
+                      <p className="text-sm text-gray-600">
                         Current:{" "}
-                        <span className="font-medium text-orange-400">
+                        <span className="font-semibold text-orange-600">
                           {item.stock}
                         </span>
                       </p>
-                      <p className="text-sm text-blue-100">
-                        Min: {item.minStock}
-                      </p>
+                      <p className="text-sm text-gray-500">Min: {item.minStock}</p>
                     </div>
-                    <div className="w-24 bg-blue-500/20 h-2 rounded-full overflow-hidden">
+
+                    <div className="w-24 h-2 overflow-hidden bg-gray-200 rounded-full">
                       <div
-                        className="bg-orange-400 h-full rounded-full"
+                        className="h-full bg-orange-500 rounded-full"
                         style={{
-                          width: `${(item.stock / item.minStock) * 100}%`,
+                          width: `${Math.min(
+                            100,
+                            item.minStock > 0
+                              ? (item.stock / item.minStock) * 100
+                              : 100
+                          )}%`,
                         }}
                       />
                     </div>
                   </div>
                 </div>
               ))}
+
+              {!loading && !loadError && lowStockItems.length === 0 && (
+                <div className="text-sm text-gray-600">
+                  No low-stock alerts right now.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -311,5 +393,3 @@ export function DashboardPage() {
     </div>
   );
 }
-
-export default DashboardPage;
