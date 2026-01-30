@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/sidebar";
-import { authFetch, getUser, logout } from "../lib/auth";
+import { authFetch, logout } from "../lib/auth";
+import { getPermissions } from "../lib/permissions";
 
 const API_BASE = "http://127.0.0.1:8000";
+
+function toMoney(v) {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function fmtMoney(v, digits = 2) {
+  return toMoney(v).toFixed(digits);
+}
 
 function mapFromApi(po) {
   return {
@@ -13,7 +23,7 @@ function mapFromApi(po) {
     orderDate: po.orderDate ?? "",
     expectedDate: po.expectedDate ?? "",
     items: po.items ?? "",
-    amount: Number(po.amount ?? 0),
+    amount: toMoney(po.amount),
     status: po.status ?? "Pending",
     notes: po.notes ?? "",
   };
@@ -21,7 +31,7 @@ function mapFromApi(po) {
 
 function mapToApi(payload) {
   return {
-    orderNumber: payload.orderNumber || undefined, // backend auto-generates if missing
+    orderNumber: payload.orderNumber || undefined,
     supplier: payload.supplier ?? "",
     orderDate: payload.orderDate || undefined,
     expectedDate: payload.expectedDate || null,
@@ -34,8 +44,9 @@ function mapToApi(payload) {
 
 export default function PurchesOrder() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState("purchase-orders"); // <-- change this
+  const { isStaff, canWrite } = getPermissions();
 
+  const [currentPage, setCurrentPage] = useState("purchase-orders");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -52,12 +63,21 @@ export default function PurchesOrder() {
     notes: "",
   });
 
+  const [suppliers, setSuppliers] = useState([]);
+
+  const supplierNames = useMemo(() => {
+    const names = (suppliers || [])
+      .map((s) => String(s?.name || "").trim())
+      .filter(Boolean);
+    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+  }, [suppliers]);
+
   const totals = useMemo(() => {
     const totalOrders = orders.length;
-    const pending = orders.filter((o) => o.status === "Pending").length;
-    const delivered = orders.filter((o) => o.status === "Delivered").length;
-    const totalValue = orders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-    return { totalOrders, pending, delivered, totalValue };
+    const pending = orders.filter((o) => (o?.status || "").toLowerCase() === "pending").length;
+    const delivered = orders.filter((o) => (o?.status || "").toLowerCase() === "delivered").length;
+    const totalAmount = orders.reduce((sum, o) => sum + toMoney(o?.amount), 0);
+    return { totalOrders, pending, delivered, totalAmount };
   }, [orders]);
 
   const loadOrders = async (signal) => {
@@ -67,23 +87,33 @@ export default function PurchesOrder() {
     setOrders(Array.isArray(json) ? json.map(mapFromApi) : []);
   };
 
+  const loadSuppliers = async (signal) => {
+    const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
+    if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
+    const json = await res.json();
+    setSuppliers(Array.isArray(json) ? json : []);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
+
     (async () => {
       try {
         setLoading(true);
         setLoadError("");
-        await loadOrders(controller.signal);
+        await Promise.all([loadOrders(controller.signal), loadSuppliers(controller.signal)]);
       } catch (e) {
-        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load purchase orders");
+        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
     })();
+
     return () => controller.abort();
   }, []);
 
   const handleCreate = async () => {
+    if (!canWrite) return;
     try {
       setLoadError("");
       const res = await authFetch(`${API_BASE}/api/purchase-orders/`, {
@@ -91,63 +121,55 @@ export default function PurchesOrder() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mapToApi(form)),
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`Failed to create PO (${res.status}) ${text}`.trim());
-      }
+
+      if (!res.ok) throw new Error(`Failed to create PO (${res.status})`);
+
       const created = mapFromApi(await res.json());
-      setOrders((prev) => [created, ...prev]);
+      setOrders((prev) => [created, ...(prev || [])]);
       setIsCreateOpen(false);
-      setForm({
-        orderNumber: "",
-        supplier: "",
-        orderDate: "",
-        expectedDate: "",
-        items: "",
-        amount: "",
-        status: "Pending",
-        notes: "",
-      });
     } catch (e) {
       setLoadError(e?.message || "Failed to create purchase order");
     }
   };
 
   const patchOrder = async (id, patch) => {
+    if (!canWrite) return null;
     const res = await authFetch(`${API_BASE}/api/purchase-orders/${id}/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Update failed (${res.status}) ${text}`.trim());
-    }
-    return mapFromApi(await res.json());
+
+    if (!res.ok) throw new Error(`Failed to update PO (${res.status})`);
+
+    const updated = mapFromApi(await res.json());
+    setOrders((prev) => (prev || []).map((o) => (o.id === id ? updated : o)));
+    return updated;
   };
 
   const handleMarkStatus = async (id, status) => {
+    if (!canWrite) return;
     try {
       setLoadError("");
-      const updated = await patchOrder(id, { status });
-      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      await patchOrder(id, { status });
     } catch (e) {
       setLoadError(e?.message || "Failed to update status");
     }
   };
 
   const handleReceive = async (id) => {
-    const res = await authFetch(`${API_BASE}/api/purchase-orders/${id}/receive/`, { method: "POST" });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Receive failed (${res.status}) ${text}`.trim());
-    }
+    if (!canWrite) return;
+    const res = await authFetch(`${API_BASE}/api/purchase-orders/${id}/receive/`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error(`Failed to receive PO (${res.status})`);
+
     const updated = mapFromApi(await res.json());
-    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    setOrders((prev) => (prev || []).map((o) => (o.id === id ? updated : o)));
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-900">
+    <div className="flex min-h-screen">
       <Sidebar
         currentPage={currentPage}
         onNavigate={(page) => {
@@ -160,19 +182,26 @@ export default function PurchesOrder() {
         }}
       />
 
-      <main className="flex-1 min-h-screen p-6 overflow-y-auto bg-gray-50">
+      <main className="flex-1 min-h-screen p-6 bg-gray-50">
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Purchase Orders</h1>
             <p className="text-gray-500">Create and track supplier purchase orders</p>
             {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
             {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
+            {isStaff && (
+              <div className="mt-2 text-sm text-gray-600">Staff account: read-only</div>
+            )}
           </div>
 
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+            disabled={!canWrite}
+            className={`px-4 py-2 text-white rounded ${
+              canWrite ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
+            }`}
+            title={canWrite ? "Create purchase order" : "Read-only (staff)"}
           >
             Create PO
           </button>
@@ -194,7 +223,7 @@ export default function PurchesOrder() {
           </div>
           <div className="p-4 bg-white rounded shadow">
             <p className="text-sm text-gray-500">Total Value</p>
-            <p className="text-lg font-bold">${totals.totalValue.toFixed(2)}</p>
+            <p className="text-lg font-bold">${fmtMoney(totals.totalAmount)}</p>
           </div>
         </div>
 
@@ -226,32 +255,38 @@ export default function PurchesOrder() {
                     <td className="p-2">{o.orderDate}</td>
                     <td className="p-2">{o.expectedDate || "-"}</td>
                     <td className="p-2">{o.items}</td>
-                    <td className="p-2">${Number(o.amount || 0).toFixed(2)}</td>
+                    <td className="p-2">${fmtMoney(o.amount)}</td>
                     <td className="p-2">{o.status}</td>
                     <td className="p-2 space-x-2">
-                      <button
-                        type="button"
-                        className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
-                        onClick={() => handleMarkStatus(o.id, "Approved")}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
-                        onClick={() => handleMarkStatus(o.id, "Shipped")}
-                      >
-                        Ship
-                      </button>
-                      <button
-                        type="button"
-                        className="px-2 py-1 text-sm text-white bg-green-600 rounded hover:bg-green-700"
-                        onClick={() => handleReceive(o.id)}
-                        disabled={o.status === "Delivered"}
-                        title={o.status === "Delivered" ? "Already delivered" : "Receive and restock"}
-                      >
-                        Receive
-                      </button>
+                      {canWrite ? (
+                        <>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+                            onClick={() => handleMarkStatus(o.id, "Approved")}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+                            onClick={() => handleMarkStatus(o.id, "Shipped")}
+                          >
+                            Ship
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-sm text-white bg-green-600 rounded hover:bg-green-700"
+                            onClick={() => handleReceive(o.id)}
+                            disabled={o.status === "Delivered"}
+                            title={o.status === "Delivered" ? "Already delivered" : "Receive and restock"}
+                          >
+                            Receive
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400">Read-only</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -268,7 +303,7 @@ export default function PurchesOrder() {
           </div>
         </div>
 
-        {/* Simple Create Modal */}
+        {/* Create Modal */}
         {isCreateOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="w-full max-w-xl p-4 bg-white rounded shadow">
@@ -296,12 +331,18 @@ export default function PurchesOrder() {
 
                 <label className="text-sm">
                   Supplier
-                  <input
+                  <select
                     className="w-full p-2 mt-1 border rounded"
                     value={form.supplier}
                     onChange={(e) => setForm((p) => ({ ...p, supplier: e.target.value }))}
-                    placeholder="Supplier name"
-                  />
+                  >
+                    <option value="">Select supplier</option>
+                    {supplierNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="text-sm">
@@ -381,8 +422,12 @@ export default function PurchesOrder() {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+                  className={`px-4 py-2 text-white rounded ${
+                    canWrite ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
+                  }`}
                   onClick={handleCreate}
+                  disabled={!canWrite}
+                  title={canWrite ? "Create" : "Read-only (staff)"}
                 >
                   Create
                 </button>

@@ -8,10 +8,13 @@ import {
   FaPhone,
   FaStar,
 } from "react-icons/fa";
+import { FiTrash2 } from "react-icons/fi";
 
 import Sidebar from "../components/sidebar";
 import AddSupplierModal from "../components/AddSupplierModal";
-import { authFetch, getUser, logout } from "../lib/auth";
+import ConfirmModal from "../components/ConfirmModal";
+import { authFetch, logout } from "../lib/auth";
+import { getPermissions } from "../lib/permissions";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -49,8 +52,12 @@ export default function SupplierManagementPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  const role = String(getUser()?.role || "staff").toLowerCase();
-  const canWrite = role === "admin" || role === "manager";
+  const { canWrite, canDelete } = getPermissions();
+
+  // delete confirm state
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadSuppliers = async (signal) => {
     const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
@@ -90,6 +97,7 @@ export default function SupplierManagementPage() {
       : "0.0";
 
   const handleAddSupplier = async (payload) => {
+    if (!canWrite) return; // staff safety
     try {
       setLoadError("");
 
@@ -106,6 +114,41 @@ export default function SupplierManagementPage() {
       setIsAddOpen(false);
     } catch (e) {
       setLoadError(e?.message || "Failed to create supplier");
+    }
+  };
+
+  const handleDeleteClick = (supplier) => {
+    if (!canDelete) return; // staff cannot
+    setLoadError("");
+    setDeleteTarget(supplier);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    const s = deleteTarget;
+    if (!s?.id) {
+      setLoadError("Cannot delete: supplier has no id.");
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setLoadError("");
+
+      const res = await authFetch(`${API_BASE}/api/suppliers/${s.id}/`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`Failed to delete supplier (${res.status})`);
+
+      setSuppliers((prev) => prev.filter((x) => x.id !== s.id));
+      setIsDeleteOpen(false);
+      setDeleteTarget(null);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to delete supplier");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -134,15 +177,15 @@ export default function SupplierManagementPage() {
             {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsAddOpen(true)}
-            disabled={!canWrite}
-            className="flex items-center px-4 py-2 text-white transition bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-60"
-            title={!canWrite ? "Staff users are read-only" : "Add supplier"}
-          >
-            <FaPlus className="mr-2" /> Add Supplier
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => setIsAddOpen(true)}
+              className="flex items-center px-4 py-2 text-white transition bg-blue-600 rounded hover:bg-blue-700"
+            >
+              <FaPlus className="mr-2" /> Add Supplier
+            </button>
+          )}
         </div>
 
         {/* Summary Cards */}
@@ -189,6 +232,7 @@ export default function SupplierManagementPage() {
                   <th className="p-2 text-left">Products</th>
                   <th className="p-2 text-left">Rating</th>
                   <th className="p-2 text-left">Orders</th>
+                  {(canDelete) && <th className="p-2 text-left">Actions</th>}
                 </tr>
               </thead>
 
@@ -218,12 +262,25 @@ export default function SupplierManagementPage() {
                       </span>
                     </td>
                     <td className="p-2">{s.orders}</td>
+
+                    {canDelete && (
+                      <td className="p-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(s)}
+                          className="p-2 text-red-600 border rounded hover:bg-red-50"
+                          aria-label={`Delete ${s.name}`}
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
 
                 {!loading && !loadError && suppliers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-4 text-sm text-gray-500">
+                    <td colSpan={canDelete ? 7 : 6} className="p-4 text-sm text-gray-500">
                       No suppliers found.
                     </td>
                   </tr>
@@ -233,10 +290,28 @@ export default function SupplierManagementPage() {
           </div>
         </div>
 
-        <AddSupplierModal
-          isOpen={isAddOpen}
-          onClose={() => setIsAddOpen(false)}
-          onSubmit={handleAddSupplier}
+        {canWrite && (
+          <AddSupplierModal
+            isOpen={isAddOpen}
+            onClose={() => setIsAddOpen(false)}
+            onSubmit={handleAddSupplier}
+          />
+        )}
+
+        <ConfirmModal
+          isOpen={isDeleteOpen}
+          loading={deleting}
+          title="Delete Supplier"
+          message={`Delete supplier "${deleteTarget?.name ?? ""}"? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive
+          onClose={() => {
+            if (deleting) return;
+            setIsDeleteOpen(false);
+            setDeleteTarget(null);
+          }}
+          onConfirm={confirmDelete}
         />
       </main>
     </div>

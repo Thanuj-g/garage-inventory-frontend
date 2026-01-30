@@ -4,9 +4,10 @@ import Sidebar from "../components/sidebar";
 import Header from "../components/Header";
 import SearchFilter from "../components/SearchFilter";
 import ActionButtons from "../components/ActionButtons";
-import AddItemModal from "../components/AddItemModal";
-import ConfirmModal from "../components/ConfirmModal"; // <-- add
 import { authFetch, logout } from "../lib/auth";
+import AddItemModal from "../components/AddItemModal";
+import ConfirmModal from "../components/ConfirmModal";
+import { getPermissions } from "../lib/permissions";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -135,7 +136,14 @@ export default function InventoryPage() {
     return uniqueSorted.length ? uniqueSorted : DEFAULT_CATEGORIES;
   }, [categories]);
 
+  const { isStaff, canWriteInventory } = getPermissions(); 
+  // If your permissions object uses different names, keep your existing canWriteInventory line
+  // and only add the canDeleteInventory line below.
+
+  const canDeleteInventory = !isStaff; // staff must NOT see delete
+
   const handleAdd = () => {
+    if (!canWriteInventory) return;
     setEditingItem(null);
     setIsAddOpen(true);
   };
@@ -157,12 +165,14 @@ export default function InventoryPage() {
   }, [data, query, selectedCategory]);
 
   const handleEdit = (item) => {
+    if (!canWriteInventory) return;
     setEditingItem(item);
     setIsAddOpen(true);
   };
 
   // Replace window.confirm flow with modal open
   const handleDelete = (item) => {
+    if (!canDeleteInventory) return;
     setLoadError("");
     setDeleteTarget(item);
     setIsDeleteOpen(true);
@@ -294,6 +304,8 @@ export default function InventoryPage() {
                     <ActionButtons
                       onEdit={() => handleEdit(item)}
                       onDelete={() => handleDelete(item)}
+                      canEdit={canWriteInventory}
+                      canDelete={canDeleteInventory}
                     />
                   </td>
                 </tr>
@@ -302,18 +314,20 @@ export default function InventoryPage() {
           </table>
         </div>
 
-        <AddItemModal
-          isOpen={isAddOpen}
-          onClose={() => {
-            setIsAddOpen(false);
-            setEditingItem(null);
-          }}
-          mode={editingItem ? "edit" : "add"}
-          initialValues={editingItem}
-          onSubmit={handleSubmitModal}
-          categoryOptions={categoryOptions}
-          supplierOptions={suppliers}
-        />
+        {canWriteInventory && (
+          <AddItemModal
+            isOpen={isAddOpen}
+            onClose={() => {
+              setIsAddOpen(false);
+              setEditingItem(null);
+            }}
+            mode={editingItem ? "edit" : "add"}
+            initialValues={editingItem}
+            onSubmit={handleSubmitModal}
+            categoryOptions={categoryOptions}
+            supplierOptions={suppliers}
+          />
+        )}
 
         {/* Delete confirmation modal (add) */}
         <ConfirmModal

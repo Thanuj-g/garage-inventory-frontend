@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../lib/auth";
+import { getPermissions } from "../lib/permissions";
 
 const API_BASE = "http://127.0.0.1:8000";
 
 export default function CriticalStock({ limit = 10 }) {
+  const { canWrite } = getPermissions();
   const [criticalItems, setCriticalItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -67,10 +69,7 @@ export default function CriticalStock({ limit = 10 }) {
 
       <div className="space-y-4">
         {criticalItems.map((item) => (
-          <div
-            key={item.id ?? item.code}
-            className="flex items-center justify-between p-4 bg-white border border-red-200 rounded-lg shadow-sm"
-          >
+          <div key={item.id ?? item.code} className="flex items-center justify-between p-4 bg-white border border-red-200 rounded-lg shadow-sm">
             <div>
               <p className="font-semibold text-red-700">{item.name}</p>
               <p className="text-sm text-gray-500">
@@ -83,16 +82,15 @@ export default function CriticalStock({ limit = 10 }) {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="px-4 py-2 font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
-              onClick={() => {
-                // Hook up to your real reorder flow later (PO creation, vendor email, etc.)
-                window.alert(`Reorder: ${item.code}`);
-              }}
-            >
-              Reorder Now
-            </button>
+            {canWrite && (
+              <button
+                type="button"
+                className="px-4 py-2 font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
+                onClick={() => window.alert(`Reorder: ${item.code}`)}
+              >
+                Reorder Now
+              </button>
+            )}
           </div>
         ))}
       </div>
