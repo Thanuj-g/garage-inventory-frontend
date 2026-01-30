@@ -71,19 +71,25 @@ export default function Categories() {
 		return () => controller.abort();
 	}, []);
 
+	const role = String(getUser()?.role || "staff").toLowerCase(); // <-- add
+	const canWrite = role === "admin" || role === "manager";       // <-- add
+	const canDelete = role === "admin";                            // <-- add
+
 	const openAdd = () => {
+		if (!canWrite) return; // <-- add
 		setEditingCategory(null);
 		setIsCategoryOpen(true);
 	};
 
 	const openEdit = (cat) => {
-		// cat should include { id, name, desc, color, items }
+		if (!canWrite) return; // <-- add
 		setEditingCategory(cat);
 		setIsCategoryOpen(true);
 	};
 
 	// Replace window.confirm flow with modal open
 	const handleDelete = (cat) => {
+		if (!canDelete) return; // <-- add
 		setLoadError("");
 		setDeleteTarget(cat);
 		setIsDeleteOpen(true);
@@ -192,13 +198,16 @@ export default function Categories() {
 						)}
 					</div>
 
-					<button
-						onClick={openAdd}
-						className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-					>
-						<FiPlus size={18} />
-						Add Category
-					</button>
+					{/* HIDE add button for staff */}
+					{canWrite && (
+						<button
+							onClick={openAdd}
+							className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+						>
+							<FiPlus size={18} />
+							Add Category
+						</button>
+					)}
 				</div>
 
 				{/* Category Cards */}
@@ -226,21 +235,30 @@ export default function Categories() {
 							<p className="mb-6 text-gray-600">{cat.desc}</p>
 
 							<div className="flex items-center gap-3">
-								<button
-									onClick={() => openEdit(cat)}
-									className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100"
-								>
-									<FiEdit size={16} />
-									Edit
-								</button>
+								{/* HIDE edit/delete for staff */}
+								{(canWrite || canDelete) && (
+									<div className="flex items-center gap-3">
+										{canWrite && (
+											<button
+												onClick={() => openEdit(cat)}
+												className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100"
+											>
+												<FiEdit size={16} />
+												Edit
+											</button>
+										)}
 
-								<button
-									onClick={() => handleDelete(cat)}
-									className="p-2 text-red-500 border rounded-lg hover:bg-red-50"
-									aria-label="Delete"
-								>
-									<FiTrash2 size={18} />
-								</button>
+										{canDelete && (
+											<button
+												onClick={() => handleDelete(cat)}
+												className="p-2 text-red-500 border rounded-lg hover:bg-red-50"
+												aria-label="Delete"
+											>
+												<FiTrash2 size={18} />
+											</button>
+										)}
+									</div>
+								)}
 							</div>
 						</div>
 					))}
@@ -251,6 +269,8 @@ export default function Categories() {
 					categories={categories}
 					onEdit={openEdit}
 					onDelete={handleDelete}
+					canWrite={canWrite}   // <-- add
+					canDelete={canDelete} // <-- add
 				/>
 
 				{/* Add/Edit Modal */}

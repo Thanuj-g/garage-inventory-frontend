@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { authFetch } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -18,23 +19,17 @@ export default function CriticalStock({ limit = 10 }) {
         const qs = new URLSearchParams();
         qs.set("limit", String(limit));
 
-        const res = await fetch(
+        const res = await authFetch(
           `${API_BASE}/api/stock-tracking/critical/?${qs.toString()}`,
-          {
-            signal: controller.signal,
-          }
+          { signal: controller.signal }
         );
 
-        if (!res.ok)
-          throw new Error(`Failed to load critical stock (${res.status})`);
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
         const json = await res.json();
-
         setCriticalItems(Array.isArray(json) ? json : []);
       } catch (e) {
         if (e?.name !== "AbortError")
-          setLoadError(e?.message || "Failed to load critical items");
-      } finally {
-        setLoading(false);
+          setLoadError(e?.message || "Failed to load critical stock");
       }
     })();
 

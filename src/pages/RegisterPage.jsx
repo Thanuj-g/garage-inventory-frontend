@@ -16,6 +16,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     name: "",
     email: "",
     garageName: "",
+    role: "staff", // <-- add (default)
     password: "",
     confirmPassword: "",
   });
@@ -39,6 +40,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
         name: formData.name,
         email: formData.email,
         garageName: formData.garageName,
+        role: formData.role, // <-- add
         password: formData.password,
       });
 
@@ -198,6 +200,23 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                     className="h-10 pl-10 text-sm text-white placeholder-blue-200 border sm:h-11 bg-white/10 border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
                     required
                   />
+                </div>
+              </div>
+
+              {/* Role (add) */}
+              <div>
+                <Label className="text-sm font-medium text-white/90">Role</Label>
+                <div className="relative mt-1">
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full h-10 sm:h-11 pl-3 pr-3 text-sm text-white border rounded-lg bg-white/10 border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
+                    required
+                  >
+                    <option value="admin">Administrator</option>
+                    <option value="manager">Manager</option>
+                    <option value="staff">Staff</option>
+                  </select>
                 </div>
               </div>
 
