@@ -6,8 +6,8 @@ import bgImage from "../assests/login.png";
 import signupAnimation from "../assests/Isometric data analysis.json";
 import { Input } from "../components/input";
 import { Label } from "../components/lable";
-import { register as apiRegister, login as apiLogin } from "../lib/auth";
-import { User, Building, Mail, Lock, ArrowRight, Wrench } from "lucide-react";
+import { register as apiRegister } from "../lib/auth";
+import { User, Mail, Lock, ArrowRight, Wrench } from "lucide-react";
 
 export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const navigate = useNavigate();
@@ -15,8 +15,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    garageName: "",
-    role: "staff", // <-- add (default)
     password: "",
     confirmPassword: "",
   });
@@ -36,19 +34,19 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       setSubmitting(true);
       setError("");
 
-      await apiRegister({
+      // Single-garage mode: do NOT send role / garageName
+      const payload = {
         name: formData.name,
         email: formData.email,
-        garageName: formData.garageName,
-        role: formData.role, // <-- add
         password: formData.password,
-      });
+      };
 
-      const me = await apiLogin({
-        email: formData.email,
-        password: formData.password,
-      });
-      onRegister?.(me);
+      // Use provided handler if present; otherwise call API directly
+      if (onRegister) {
+        await onRegister(payload);
+      } else {
+        await apiRegister(payload);
+      }
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -96,11 +94,11 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                 Create Account
               </h2>
               <p className="mt-1 text-xs text-blue-100 sm:text-sm">
-                Register your garage and start managing inventory
+                Create your account to start managing inventory
               </p>
             </div>
 
-            {/* Form - NO internal scrolling */}
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
               {/* Full Name */}
               <div>
@@ -115,25 +113,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Enter your name"
-                    className="h-10 pl-10 text-sm text-white placeholder-blue-200 border sm:h-11 bg-white/10 border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Garage Name */}
-              <div>
-                <Label className="text-sm font-medium text-white/90">
-                  Garage Name
-                </Label>
-                <div className="relative mt-1">
-                  <Building className="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-white/70" />
-                  <Input
-                    value={formData.garageName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, garageName: e.target.value })
-                    }
-                    placeholder="Garage name"
                     className="h-10 pl-10 text-sm text-white placeholder-blue-200 border sm:h-11 bg-white/10 border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
                     required
                   />
@@ -203,23 +182,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
                 </div>
               </div>
 
-              {/* Role (add) */}
-              <div>
-                <Label className="text-sm font-medium text-white/90">Role</Label>
-                <div className="relative mt-1">
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full h-10 sm:h-11 pl-3 pr-3 text-sm text-white border rounded-lg bg-white/10 border-white/30 focus:border-blue-400 focus:ring-blue-400 backdrop-blur-sm"
-                    required
-                  >
-                    <option value="admin">Administrator</option>
-                    <option value="manager">Manager</option>
-                    <option value="staff">Staff</option>
-                  </select>
-                </div>
-              </div>
-
               {/* Error Message */}
               {error && (
                 <div className="p-3 text-sm text-red-200 border rounded bg-red-900/30 border-red-400/30">
@@ -246,9 +208,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
               <button
                 type="button"
                 onClick={() =>
-                  onSwitchToLogin
-                    ? onSwitchToLogin()
-                    : navigate("/login")
+                  onSwitchToLogin ? onSwitchToLogin() : navigate("/login")
                 }
                 className="font-medium text-blue-200 transition hover:text-white hover:underline"
               >

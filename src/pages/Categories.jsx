@@ -6,6 +6,7 @@ import AllCategoriesTable from "../components/AllCategoriesTable";
 import AddCategoryModal from "../components/AddCategoryModal";
 import ConfirmModal from "../components/ConfirmModal"; // <-- add
 import { authFetch, getUser, logout } from "../lib/auth";
+import { getPermissions } from "../lib/permissions";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -72,8 +73,7 @@ export default function Categories() {
 	}, []);
 
 	const role = String(getUser()?.role || "staff").toLowerCase(); // <-- add
-	const canWrite = role === "admin" || role === "manager";       // <-- add
-	const canDelete = role === "admin";                            // <-- add
+	const { canWrite, canDelete } = getPermissions(); // manager/admin => true
 
 	const openAdd = () => {
 		if (!canWrite) return; // <-- add
