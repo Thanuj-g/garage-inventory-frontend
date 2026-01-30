@@ -1,8 +1,16 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  FaPlus,
+  FaBuilding,
+  FaUsers,
+  FaEnvelope,
+  FaPhone,
+  FaStar,
+} from "react-icons/fa";
+
 import Sidebar from "../components/sidebar";
 import AddSupplierModal from "../components/AddSupplierModal";
-import { FaBuilding, FaUsers, FaStar, FaPlus, FaPhone, FaEnvelope } from "react-icons/fa";
 import { authFetch, getUser, logout } from "../lib/auth";
 
 const API_BASE = "http://127.0.0.1:8000";
@@ -37,9 +45,12 @@ export default function SupplierManagementPage() {
   const [currentPage, setCurrentPage] = useState("suppliers");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const [suppliers, setSuppliers] = useState([]); // <-- removed hardcoded list
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  const role = String(getUser()?.role || "staff").toLowerCase();
+  const canWrite = role === "admin" || role === "manager";
 
   const loadSuppliers = async (signal) => {
     const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
@@ -57,7 +68,9 @@ export default function SupplierManagementPage() {
         setLoadError("");
         await loadSuppliers(controller.signal);
       } catch (e) {
-        if (e?.name !== "AbortError") setLoadError(e?.message || "Failed to load suppliers");
+        if (e?.name !== "AbortError") {
+          setLoadError(e?.message || "Failed to load suppliers");
+        }
       } finally {
         setLoading(false);
       }
@@ -77,16 +90,23 @@ export default function SupplierManagementPage() {
       : "0.0";
 
   const handleAddSupplier = async (payload) => {
-    const res = await authFetch(`${API_BASE}/api/suppliers/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mapToApi(payload)),
-    });
-    if (!res.ok) throw new Error(`Failed to create supplier (${res.status})`);
-    const created = mapFromApi(await res.json());
+    try {
+      setLoadError("");
 
-    setSuppliers((prev) => [created, ...prev]);
-    setIsAddOpen(false);
+      const res = await authFetch(`${API_BASE}/api/suppliers/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mapToApi(payload)),
+      });
+
+      if (!res.ok) throw new Error(`Failed to create supplier (${res.status})`);
+      const created = mapFromApi(await res.json());
+
+      setSuppliers((prev) => [created, ...prev]);
+      setIsAddOpen(false);
+    } catch (e) {
+      setLoadError(e?.message || "Failed to create supplier");
+    }
   };
 
   return (
@@ -117,7 +137,9 @@ export default function SupplierManagementPage() {
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
-            className="flex items-center px-4 py-2 text-white transition bg-blue-600 rounded hover:bg-blue-700"
+            disabled={!canWrite}
+            className="flex items-center px-4 py-2 text-white transition bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-60"
+            title={!canWrite ? "Staff users are read-only" : "Add supplier"}
           >
             <FaPlus className="mr-2" /> Add Supplier
           </button>
@@ -172,21 +194,26 @@ export default function SupplierManagementPage() {
 
               <tbody>
                 {suppliers.map((s, idx) => (
-                  <tr key={s.id ?? `${s.name}-${idx}`} className="border-b hover:bg-gray-50">
+                  <tr
+                    key={s.id ?? `${s.name}-${idx}`}
+                    className="border-b hover:bg-gray-50"
+                  >
                     <td className="p-2 font-medium">{s.name}</td>
                     <td className="p-2">{s.contact}</td>
                     <td className="p-2 space-y-1">
                       <div className="flex items-center space-x-2">
-                        <FaEnvelope className="text-gray-400" /> <span>{s.email}</span>
+                        <FaEnvelope className="text-gray-400" />
+                        <span>{s.email}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <FaPhone className="text-gray-400" /> <span>{s.phone}</span>
+                        <FaPhone className="text-gray-400" />
+                        <span>{s.phone}</span>
                       </div>
                     </td>
                     <td className="p-2">{s.products}</td>
                     <td className="p-2">
                       <span className="inline-flex items-center">
-                        <FaStar className="mr-1 text-yellow-400" />{" "}
+                        <FaStar className="mr-1 text-yellow-400" />
                         {Number(s.rating || 0).toFixed(1)}
                       </span>
                     </td>
