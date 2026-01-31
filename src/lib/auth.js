@@ -5,7 +5,37 @@ const REFRESH_KEY = "gf_refresh_token";
 const USER_KEY = "gf_user";
 
 export function getAccessToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_KEY) || "";
+}
+
+export function setAccessToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function setRefreshToken(token) {
+  localStorage.setItem(REFRESH_KEY, token);
+}
+
+async function refreshAccessToken() {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+
+  // FIX: correct refresh endpoint
+  const res = await fetch(`${API_BASE}/api/auth/refresh/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh }),
+  });
+
+  if (!res.ok) return null;
+
+  const json = await res.json();
+  if (json?.access) setAccessToken(json.access);
+  return json?.access || null;
 }
 
 export function isAuthenticated() {
@@ -25,6 +55,10 @@ export function logout() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+
+  // clean up old keys if they exist from previous code
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
 }
 
 /**
@@ -32,18 +66,28 @@ export function logout() {
  * Adds `Authorization: Bearer <access>` automatically.
  */
 export async function authFetch(url, options = {}) {
+  const opts = { ...options, headers: { ...(options.headers || {}) } };
+
   const token = getAccessToken();
+  if (token) opts.headers.Authorization = `Bearer ${token}`;
 
-  // normalize headers to a plain object so we can merge safely
-  const inHeaders = options.headers || {};
-  const headers =
-    inHeaders instanceof Headers
-      ? Object.fromEntries(inHeaders.entries())
-      : { ...inHeaders };
+  let res = await fetch(url, opts);
 
-  if (token) headers.Authorization = `Bearer ${token}`;
+  // If access token expired, try refresh ONCE
+  if (res.status === 401) {
+    const newAccess = await refreshAccessToken();
+    if (newAccess) {
+      const retryOpts = {
+        ...opts,
+        headers: { ...opts.headers, Authorization: `Bearer ${newAccess}` },
+      };
+      res = await fetch(url, retryOpts);
+    } else {
+      logout();
+    }
+  }
 
-  return fetch(url, { ...options, headers });
+  return res;
 }
 
 export async function register(payload) {
@@ -74,8 +118,8 @@ export async function login({ email, password }) {
   }
 
   const tokens = await res.json(); // { access, refresh }
-  localStorage.setItem(TOKEN_KEY, tokens.access);
-  localStorage.setItem(REFRESH_KEY, tokens.refresh);
+  setAccessToken(tokens.access);
+  setRefreshToken(tokens.refresh);
 
   // Load profile (role/garageName)
   const meRes = await fetch(`${API_BASE}/api/auth/me/`, {
