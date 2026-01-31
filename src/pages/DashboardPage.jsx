@@ -30,6 +30,7 @@ import {
   Cell,
 } from "recharts";
 import { authFetch, logout } from "../lib/auth";
+import { getPermissions } from "../lib/permissions"; // <-- add
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -41,6 +42,8 @@ function toMoney(n) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("dashboard");
+
+  const { isStaff } = getPermissions(); // <-- add
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -124,12 +127,8 @@ export default function DashboardPage() {
         <div>
           <h2 className="mb-1 text-3xl font-bold">Dashboard</h2>
           <p className="text-gray-500">Overview of your garage inventory</p>
-          {loading && (
-            <div className="mt-2 text-sm text-gray-600">Loading...</div>
-          )}
-          {loadError && (
-            <div className="mt-2 text-sm text-red-600">{loadError}</div>
-          )}
+          {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
+          {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
         </div>
 
         {/* Stats Cards */}
@@ -194,144 +193,145 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-900">Sales Trend</CardTitle>
-              <CardDescription className="text-gray-500">
-                Last 6 months
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#6b7280"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="#6b7280"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      borderColor: "#e5e7eb",
-                      color: "#111827",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="#2563eb"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Charts + Stock Levels (MANAGER ONLY) */}
+        {!isStaff && (
+          <>
+            {/* Charts */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">Sales Trend</CardTitle>
+                  <CardDescription className="text-gray-500">
+                    Last 6 months
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={salesData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#6b7280"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#6b7280"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#fff",
+                          borderColor: "#e5e7eb",
+                          color: "#111827",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="sales"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-900">Inventory by Category</CardTitle>
-              <CardDescription className="text-gray-500">
-                Distribution of spare parts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={90}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      borderColor: "#e5e7eb",
-                      color: "#111827",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-gray-900">Inventory by Category</CardTitle>
+                  <CardDescription className="text-gray-500">
+                    Distribution of spare parts
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}%`}
+                        outerRadius={90}
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#fff",
+                          borderColor: "#e5e7eb",
+                          color: "#111827",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Stock Levels */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Stock Levels by Category</CardTitle>
-            <CardDescription className="text-gray-500">
-              Inventory status across categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={stockLevelData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#e5e7eb"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="category"
-                  stroke="#6b7280"
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#6b7280"
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#fff",
-                    borderColor: "#e5e7eb",
-                    color: "#111827",
-                  }}
-                />
-                <Bar
-                  dataKey="inStock"
-                  fill="#10b981"
-                  name="In Stock"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="lowStock"
-                  fill="#f59e0b"
-                  name="Low Stock"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="outOfStock"
-                  fill="#ef4444"
-                  name="Out of Stock"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+            {/* Stock Levels */}
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-gray-900">Stock Levels by Category</CardTitle>
+                <CardDescription className="text-gray-500">
+                  Inventory status across categories
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={stockLevelData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="category"
+                      stroke="#6b7280"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis stroke="#6b7280" tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        borderColor: "#e5e7eb",
+                        color: "#111827",
+                      }}
+                    />
+                    <Bar
+                      dataKey="inStock"
+                      fill="#10b981"
+                      name="In Stock"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="lowStock"
+                      fill="#f59e0b"
+                      name="Low Stock"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="outOfStock"
+                      fill="#ef4444"
+                      name="Out of Stock"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
-        {/* Low Stock Alerts */}
+        {/* Low Stock Alerts (EVERYONE, including staff) */}
         <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">

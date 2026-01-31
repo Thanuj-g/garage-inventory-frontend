@@ -136,11 +136,9 @@ export default function InventoryPage() {
     return uniqueSorted.length ? uniqueSorted : DEFAULT_CATEGORIES;
   }, [categories]);
 
-  const { isStaff, canWriteInventory } = getPermissions(); 
+  const { canWriteInventory, canDeleteInventory } = getPermissions(); 
   // If your permissions object uses different names, keep your existing canWriteInventory line
   // and only add the canDeleteInventory line below.
-
-  const canDeleteInventory = !isStaff; // staff must NOT see delete
 
   const handleAdd = () => {
     if (!canWriteInventory) return;
@@ -172,7 +170,7 @@ export default function InventoryPage() {
 
   // Replace window.confirm flow with modal open
   const handleDelete = (item) => {
-    if (!canDeleteInventory) return;
+    if (!canDeleteInventory) return; // staff cannot delete
     setLoadError("");
     setDeleteTarget(item);
     setIsDeleteOpen(true);
