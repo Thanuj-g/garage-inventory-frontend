@@ -73,23 +73,23 @@ export default function Categories() {
 	}, []);
 
 	const role = String(getUser()?.role || "staff").toLowerCase(); // <-- add
-	const { canWrite, canDelete } = getPermissions(); // manager/admin => true
+	const { canWriteCategories, canDeleteCategories } = getPermissions(); // manager/admin => true
 
 	const openAdd = () => {
-		if (!canWrite) return; // <-- add
+		if (!canWriteCategories) return;
 		setEditingCategory(null);
 		setIsCategoryOpen(true);
 	};
 
 	const openEdit = (cat) => {
-		if (!canWrite) return; // <-- add
+		if (!canWriteCategories) return;
 		setEditingCategory(cat);
 		setIsCategoryOpen(true);
 	};
 
 	// Replace window.confirm flow with modal open
 	const handleDelete = (cat) => {
-		if (!canDelete) return; // <-- add
+		if (!canDeleteCategories) return;
 		setLoadError("");
 		setDeleteTarget(cat);
 		setIsDeleteOpen(true);
@@ -199,7 +199,7 @@ export default function Categories() {
 					</div>
 
 					{/* HIDE add button for staff */}
-					{canWrite && (
+					{canWriteCategories && (
 						<button
 							onClick={openAdd}
 							className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
@@ -236,9 +236,9 @@ export default function Categories() {
 
 							<div className="flex items-center gap-3">
 								{/* HIDE edit/delete for staff */}
-								{(canWrite || canDelete) && (
+								{(canWriteCategories || canDeleteCategories) && (
 									<div className="flex items-center gap-3">
-										{canWrite && (
+										{canWriteCategories && (
 											<button
 												onClick={() => openEdit(cat)}
 												className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100"
@@ -248,7 +248,7 @@ export default function Categories() {
 											</button>
 										)}
 
-										{canDelete && (
+										{canDeleteCategories && (
 											<button
 												onClick={() => handleDelete(cat)}
 												className="p-2 text-red-500 border rounded-lg hover:bg-red-50"
@@ -269,8 +269,8 @@ export default function Categories() {
 					categories={categories}
 					onEdit={openEdit}
 					onDelete={handleDelete}
-					canWrite={canWrite}   // <-- add
-					canDelete={canDelete} // <-- add
+					canWrite={canWriteCategories}
+					canDelete={canDeleteCategories}
 				/>
 
 				{/* Add/Edit Modal */}

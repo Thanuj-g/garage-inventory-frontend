@@ -4,12 +4,12 @@ import Sidebar from "../components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/card";
 
 import {
-    Plus,
-    ShoppingCart,
-    Package,
-    TrendingUp,
-    ChevronDown,
-    Check,
+  Plus,
+  ShoppingCart,
+  Package,
+  TrendingUp,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import RecordTransactionModal from "../components/RecordTransactionModal";
 import {
@@ -22,7 +22,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { authFetch, getUser, logout } from "../lib/auth";
+import { authFetch, logout } from "../lib/auth";
+import { getPermissions } from "../lib/permissions"; // <-- add
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -56,6 +57,8 @@ export default function SalesAndUsagePage() {
   const [currentPage, setCurrentPage] = useState("sales");
   const [filterType, setFilterType] = useState("All Transactions");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const { isStaff } = getPermissions(); // <-- add
 
   const [isRecordOpen, setIsRecordOpen] = useState(false);
 
@@ -95,7 +98,10 @@ export default function SalesAndUsagePage() {
     const qs = new URLSearchParams();
     if (typeParam) qs.set("type", typeParam);
 
-    const res = await authFetch(`${API_BASE}/api/sales-usage/transactions/?${qs.toString()}`, { signal });
+    const res = await authFetch(
+      `${API_BASE}/api/sales-usage/transactions/?${qs.toString()}`,
+      { signal }
+    );
     if (!res.ok) throw new Error(`Failed to load transactions (${res.status})`);
     const json = await res.json();
     setTransactions(Array.isArray(json) ? json.map(mapTxnFromApi) : []);
@@ -110,12 +116,15 @@ export default function SalesAndUsagePage() {
         setLoading(true);
         setLoadError("");
 
-        // cards + chart can load once, but safe to refresh whenever filter changes too
-        await Promise.all([
-          loadSummary(controller.signal),
-          loadWeekly(controller.signal),
-          loadTransactions(controller.signal, typeParam),
-        ]);
+        // Staff: only transaction list (no summary/cards/chart)
+        // Manager/Admin: load everything
+        const tasks = [loadTransactions(controller.signal, typeParam)];
+        if (!isStaff) {
+          tasks.push(loadSummary(controller.signal));
+          tasks.push(loadWeekly(controller.signal));
+        }
+
+        await Promise.all(tasks);
       } catch (e) {
         if (e?.name !== "AbortError")
           setLoadError(e?.message || "Failed to load sales & usage data");
@@ -125,9 +134,8 @@ export default function SalesAndUsagePage() {
     })();
 
     return () => controller.abort();
-  }, [filterType]);
+  }, [filterType, isStaff]);
 
-  // Filter is already applied on backend via ?type=..., but keep client filter as backup.
   const filteredData = useMemo(() => {
     return transactions.filter((item) => {
       if (filterType === "Sales Only") return item.type === "Sale";
@@ -137,8 +145,6 @@ export default function SalesAndUsagePage() {
   }, [transactions, filterType]);
 
   const handleRecordTransaction = async (payload) => {
-    // payload from modal expected shape:
-    // { item, qty, price, customer, type, partNumber }
     try {
       setLoadError("");
 
@@ -160,13 +166,15 @@ export default function SalesAndUsagePage() {
         throw new Error(`Failed to record transaction (${res.status}) ${text}`.trim());
       }
 
-      // refresh data after record (keeps cards/chart/stock accurate)
       const typeParam = filterTypeToApiParam(filterType);
-      await Promise.all([
-        loadSummary(undefined),
-        loadWeekly(undefined),
-        loadTransactions(undefined, typeParam),
-      ]);
+
+      // Refresh: staff only needs transaction list; manager/admin also refresh summary/chart
+      const tasks = [loadTransactions(undefined, typeParam)];
+      if (!isStaff) {
+        tasks.push(loadSummary(undefined));
+        tasks.push(loadWeekly(undefined));
+      }
+      await Promise.all(tasks);
 
       setIsRecordOpen(false);
     } catch (e) {
@@ -196,6 +204,11 @@ export default function SalesAndUsagePage() {
             <p className="text-gray-500">Monitor sales and internal usage</p>
             {loading && <div className="mt-2 text-sm text-gray-600">Loading...</div>}
             {loadError && <div className="mt-2 text-sm text-red-600">{loadError}</div>}
+            {isStaff && (
+              <div className="mt-2 text-sm text-gray-600">
+                Staff view: summary and charts are hidden
+              </div>
+            )}
           </div>
 
           <button
@@ -208,118 +221,126 @@ export default function SalesAndUsagePage() {
           </button>
         </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Info Cards (MANAGER ONLY) */}
+        {!isStaff && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Total Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-3xl font-bold">
+                  <span className="text-xl font-normal text-green-600">$</span>
+                  {toMoney(summary.total_revenue).toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Today's Sales
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-3xl font-bold">
+                  <ShoppingCart className="w-6 h-6 text-blue-600" />{" "}
+                  {Number(summary.todays_sales ?? 0)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Items Sold
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-3xl font-bold">
+                  <Package className="w-6 h-6 text-purple-600" />{" "}
+                  {Number(summary.items_sold ?? 0)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Avg Transaction
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-3xl font-bold">
+                  <TrendingUp className="w-5 h-5 text-orange-600" />{" "}
+                  ${toMoney(summary.avg_transaction).toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Chart Section (MANAGER ONLY) */}
+        {!isStaff && (
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total Revenue
-              </CardTitle>
+            <CardHeader>
+              <CardTitle className="text-gray-900">Weekly Sales vs Usage</CardTitle>
+              <p className="text-sm text-gray-500">
+                Sales revenue and internal usage over the week
+              </p>
             </CardHeader>
+
             <CardContent>
-              <div className="flex items-center gap-2 text-3xl font-bold">
-                <span className="text-xl font-normal text-green-600">$</span>
-                {toMoney(summary.total_revenue).toFixed(2)}
-              </div>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart
+                  data={weeklyData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e5e7eb"
+                    vertical={false}
+                  />
+                  <XAxis dataKey="day" stroke="#6b7280" tickLine={false} axisLine={false} />
+                  <YAxis
+                    stroke="#6b7280"
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderColor: "#e5e7eb",
+                      color: "#111827",
+                    }}
+                    itemStyle={{ color: "#111827" }}
+                    cursor={{ fill: "#f3f4f6" }}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="sales"
+                    name="Sales ($)"
+                    fill="#2563eb"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  />
+                  <Bar
+                    dataKey="usage"
+                    name="Usage ($)"
+                    fill="#f59e0b"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Today's Sales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-3xl font-bold">
-                <ShoppingCart className="w-6 h-6 text-blue-600" />{" "}
-                {Number(summary.todays_sales ?? 0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Items Sold
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-3xl font-bold">
-                <Package className="w-6 h-6 text-purple-600" />{" "}
-                {Number(summary.items_sold ?? 0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Avg Transaction
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-3xl font-bold">
-                <TrendingUp className="w-5 h-5 text-orange-600" />{" "}
-                ${toMoney(summary.avg_transaction).toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Chart Section */}
-        <Card className="bg-white border border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Weekly Sales vs Usage</CardTitle>
-            <p className="text-sm text-gray-500">
-              Sales revenue and internal usage over the week
-            </p>
-          </CardHeader>
-
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart
-                data={weeklyData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="day" stroke="#6b7280" tickLine={false} axisLine={false} />
-                <YAxis
-                  stroke="#6b7280"
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e5e7eb",
-                    color: "#111827",
-                  }}
-                  itemStyle={{ color: "#111827" }}
-                  cursor={{ fill: "#f3f4f6" }}
-                />
-                <Legend />
-                <Bar
-                  dataKey="sales"
-                  name="Sales ($)"
-                  fill="#2563eb"
-                  radius={[4, 4, 0, 0]}
-                  barSize={40}
-                />
-                <Bar
-                  dataKey="usage"
-                  name="Usage ($)"
-                  fill="#f59e0b"
-                  radius={[4, 4, 0, 0]}
-                  barSize={40}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Transactions Table */}
+        {/* Transactions Table (VISIBLE TO ALL) */}
         <Card className="bg-white border border-gray-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
