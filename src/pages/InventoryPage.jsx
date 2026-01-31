@@ -58,6 +58,17 @@ function mapToApi(payload) {
   };
 }
 
+function normalize(s) {
+  return String(s ?? "").trim();
+}
+
+function unwrapList(json) {
+  // Supports both plain arrays and DRF pagination: { results: [...] }
+  if (Array.isArray(json)) return json;
+  if (json && Array.isArray(json.results)) return json.results;
+  return [];
+}
+
 export default function InventoryPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState("inventory");
@@ -83,7 +94,8 @@ export default function InventoryPage() {
   const loadItems = async (signal) => {
     const res = await authFetch(`${API_BASE}/api/items/`, { signal });
     if (!res.ok) throw new Error(`Failed to load items (${res.status})`);
-    const items = await res.json();
+    const json = await res.json();
+    const items = unwrapList(json);
     setData(items.map(mapFromApi));
   };
 
@@ -91,15 +103,21 @@ export default function InventoryPage() {
     const res = await authFetch(`${API_BASE}/api/suppliers/`, { signal });
     if (!res.ok) throw new Error(`Failed to load suppliers (${res.status})`);
     const json = await res.json();
-    setSuppliers(Array.isArray(json) ? json.map((s) => ({ id: s.id, name: s.name })) : []);
+    const list = unwrapList(json);
+    setSuppliers(
+      list.map((s) => ({ id: s.id, name: s.name })).filter((s) => s.id != null && normalize(s.name))
+    );
   };
 
   const loadCategories = async (signal) => {
     const res = await authFetch(`${API_BASE}/api/categories/`, { signal });
     if (!res.ok) throw new Error(`Failed to load categories (${res.status})`);
     const json = await res.json();
+    const list = unwrapList(json);
     // CategorySerializer returns { id, name, desc, color, ... }
-    setCategories(Array.isArray(json) ? json.map((c) => ({ id: c.id, name: c.name })) : []);
+    setCategories(
+      list.map((c) => ({ id: c.id, name: c.name })).filter((c) => c.id != null && normalize(c.name))
+    );
   };
 
   useEffect(() => {
@@ -124,17 +142,17 @@ export default function InventoryPage() {
     return () => controller.abort();
   }, []);
 
-  // Use backend categories for dropdown; fallback to DEFAULT_CATEGORIES if backend empty.
+  // Use backend categories for dropdown; also include any categories already used by items.
   const categoryOptions = useMemo(() => {
-    const names = categories
-      .map((c) => String(c?.name || "").trim())
-      .filter(Boolean);
+    const fromBackend = categories.map((c) => normalize(c?.name)).filter(Boolean);
+    const fromItems = data.map((d) => normalize(d?.category)).filter(Boolean);
 
-    // unique + alpha sort
-    const uniqueSorted = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+    const uniqueSorted = Array.from(new Set([...fromBackend, ...fromItems])).sort((a, b) =>
+      a.localeCompare(b)
+    );
 
     return uniqueSorted.length ? uniqueSorted : DEFAULT_CATEGORIES;
-  }, [categories]);
+  }, [categories, data]);
 
   const { canWriteInventory, canDeleteInventory } = getPermissions(); 
   // If your permissions object uses different names, keep your existing canWriteInventory line
@@ -149,14 +167,17 @@ export default function InventoryPage() {
   const handleSearch = (q) => setQuery(q || "");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalize(query).toLowerCase();
+    const sel = normalize(selectedCategory);
 
     return data.filter((d) => {
-      const matchesQuery =
-        !q || d.name.toLowerCase().includes(q) || d.part.toLowerCase().includes(q);
+      const name = normalize(d?.name).toLowerCase();
+      const part = normalize(d?.part).toLowerCase();
+
+      const matchesQuery = !q || name.includes(q) || part.includes(q);
 
       const matchesCategory =
-        selectedCategory === "all" || d.category === selectedCategory;
+        sel === "all" || normalize(d?.category).toLowerCase() === sel.toLowerCase();
 
       return matchesQuery && matchesCategory;
     });
